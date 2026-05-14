@@ -1,0 +1,9 @@
+# Local ops metrics (optional). Start: docker compose -f docker-compose.dev.yml up -d
+services:
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.106.0
+    ports:
+      - "8428:8428"
+    command:
+      - "-storageDataPath=/vmdata"
+      - "-httpListenAddr=:8428"

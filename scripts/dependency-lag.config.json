@@ -1,0 +1,5 @@
+{
+  "minimumReleaseAgeMinutes": 43200,
+  "notes": "43200 minutes = 30 calendar days (operational shorthand: ~4 weeks). Keep minimumReleaseAge in pnpm-workspace.yaml in sync with this value.",
+  "securityAgeExceptions": []
+}

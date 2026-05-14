@@ -1,0 +1,7 @@
+# minimumReleaseAge (minutes) must match scripts/dependency-lag.config.json
+minimumReleaseAge: 43200
+minimumReleaseAgeStrict: true
+
+packages:
+  - "packages/*"
+  - "apps/*"
