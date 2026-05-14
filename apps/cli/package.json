@@ -1,0 +1,21 @@
+{
+  "name": "@clearbolt/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "clearbolt": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@clearbolt/core": "workspace:*",
+    "@clearbolt/dedup": "workspace:*",
+    "@clearbolt/scraper": "workspace:*",
+    "@clearbolt/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
