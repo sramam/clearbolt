@@ -5,4 +5,9 @@ export { throttleHost } from "./throttle.js";
 export { classifyWaf } from "./waf-detector.js";
 export { planHttpLaneAfterWaf } from "./crawl-policy.js";
 export type { HttpLanePlan } from "./crawl-policy.js";
+export {
+  fetchHtmlWithHttpWafPolicy,
+  type FetchHtmlWithHttpWafPolicyOptions,
+  type PersistNeedsBrowserFn,
+} from "./fetch-with-waf-policy.js";
 export * from "./adapters/bizbuysell.js";

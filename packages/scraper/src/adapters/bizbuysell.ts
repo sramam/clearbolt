@@ -6,6 +6,10 @@ import type {
 } from "@clearbolt/core";
 import type { EvidenceRef } from "@clearbolt/core";
 import * as cheerio from "cheerio";
+import {
+  type FetchHtmlWithHttpWafPolicyOptions,
+  fetchHtmlWithHttpWafPolicy,
+} from "../fetch-with-waf-policy.js";
 import type { Fetcher } from "../fetcher.js";
 
 export const BIZBUYSELL_ADAPTER_ID = "bizbuysell";
@@ -49,11 +53,25 @@ export async function* discoverListingRefs(
   }
 }
 
+/** Single HTTP fetch (tests, replay, callers that skip WAF policy). */
 export async function fetchListingHtml(
   fetcher: Fetcher,
   ref: ListingRef,
 ): Promise<{ html: string; finalUrl: string }> {
   const res = await fetcher.fetch({ url: ref.url });
+  return { html: res.body, finalUrl: res.finalUrl };
+}
+
+export type FetchListingHtmlWithWafPolicyOptions =
+  FetchHtmlWithHttpWafPolicyOptions;
+
+/** Listing detail fetch with the same bounded HTTP + WAF policy as search. */
+export async function fetchListingHtmlWithWafPolicy(
+  fetcher: Fetcher,
+  ref: ListingRef,
+  options: FetchListingHtmlWithWafPolicyOptions,
+): Promise<{ html: string; finalUrl: string }> {
+  const res = await fetchHtmlWithHttpWafPolicy(fetcher, ref.url, options);
   return { html: res.body, finalUrl: res.finalUrl };
 }
 

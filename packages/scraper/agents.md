@@ -124,13 +124,15 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 - `HttpFetcher` (got + AIA) + `MockFetcher` (tests).
 - `ThrottleManager` (in-process AIMD, in-memory state — persistence to `MetadataStore` lands when MetadataStore lands).
 - `WafDetector` with Akamai rule pack (since BizBuySell uses Akamai, this exercises the wisdom up front).
-- `crawl-policy.ts` — bounded HTTP retries after `classifyWaf`; when the lane is exhausted, callers persist `needsBrowser` on `DomainProfile` (wired on the CLI search fetch path).
+- `crawl-policy.ts` + `fetch-with-waf-policy.ts` — bounded HTTP retries after `classifyWaf`; when the lane is exhausted, callers persist `needsBrowser` on `DomainProfile` (wired on the CLI search and BizBuySell listing-detail fetch paths).
 - `BrowserFetcher` (Playwright) wired in but only used when WAF escalation triggers it.
 - One adapter end-to-end: `adapters/bizbuysell/`.
 
 ## Validation criteria
 
 ### Contracts
+- **Given** a `Fetcher` that returns 429 twice then 200 for the same URL, **when** `fetchHtmlWithHttpWafPolicy` runs with default `maxHttpAttempts`, **then** the third response is returned and `persistNeedsBrowser` is never called. Coverage: integration. Test: `packages/scraper/tests/fetch-waf-policy.test.ts::retries_rate_limit_then_succeeds`.
+- **Given** a `Fetcher` that returns only 429 for the same URL, **when** `fetchHtmlWithHttpWafPolicy` exhausts HTTP retries, **then** `persistNeedsBrowser` is invoked once for that host and the function throws. Coverage: integration. Test: `packages/scraper/tests/fetch-waf-policy.test.ts::persists_needs_browser_after_max_rate_limited_attempts`.
 - **Given** any `Fetcher` backend, **when** the conformance suite runs, **then** all assertions pass (`Fetcher.fetch` returns a `RawResponse` with `status`, `body`, `finalUrl`, `headers`, `evidenceRef`). Coverage: integration. Test: `packages/scraper/src/conformance/fetcher.suite.ts` (TBD V0).
 - **Given** a `WafDetector` classification and attempt count, **when** `planHttpLaneAfterWaf` runs, **then** challenge/block persist `needsBrowser` without endless HTTP retry, rate limits retry up to `maxHttpAttempts` then persist, and `ok` continues. Coverage: integration. Test: `packages/scraper/tests/engine-escalation.test.ts`.
 - **Given** any `WafDetector`, **when** fed the fixture corpus in `packages/scraper/tests/fixtures/waf/*`, **then** classification matches the labeled expectation (`ok | challenge | block | rate_limited`). Coverage: golden-set. Test: `packages/scraper/tests/waf-detector.test.ts` (TBD V0).
