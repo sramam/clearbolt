@@ -62,6 +62,8 @@ docker compose -f docker-compose.dev.yml up -d
 | `pnpm lint:specs` | Advisory markdown spec checks |
 | `pnpm verify:dependency-lag` | Lockfile vs npm publish dates (30-day lag policy) |
 | `pnpm ensure:playwright` | Install Playwright Chromium for `@clearbolt/scraper` (browser lane) |
+| `pnpm exec neonctl` | [Neon CLI](https://neon.com/docs/reference/neon-cli) — projects, branches, connection strings (run `neonctl auth` once per machine) |
+| `pnpm exec wrangler` | [Wrangler](https://developers.cloudflare.com/workers/wrangler/) — Workers, R2, Pages (`wrangler login` for account auth) |
 
 ## Layout
 
