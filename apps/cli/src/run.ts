@@ -13,6 +13,7 @@ import {
   discoverListingRefs,
   fetchHtmlWithHttpWafPolicy,
   fetchListingHtmlWithWafPolicy,
+  openBrowserSession,
   parseListingPage,
   parseSearchUrl,
 } from "@clearbolt/scraper";
@@ -94,7 +95,7 @@ clearbolt deals list
 clearbolt replay
 clearbolt domain show <host>
 clearbolt domain mark <host> --browser | --http
-Env: DATA_DIR (default ./data), CLEARBOLT_SCRAPE_LIMIT (default 10)`);
+Env: DATA_DIR (default ./data), CLEARBOLT_SCRAPE_LIMIT (default 10), CLEARBOLT_SKIP_BROWSER=1 (no Playwright session for scrape)`);
     return;
   }
   if (cmd === "scrape") {
@@ -135,61 +136,79 @@ async function cmdScrape(args: string[]): Promise<void> {
   const fetcher = useFixtures ? await buildFixtureFetcher() : new HttpFetcher();
   const limit = Number.parseInt(process.env.CLEARBOLT_SCRAPE_LIMIT ?? "10", 10);
 
-  const persistNeedsBrowser = async (host: string) => {
-    await meta.putDomainProfile({
-      host,
-      needsBrowser: true,
-      lastUpdatedAt: new Date().toISOString(),
-    });
-  };
-  const hostRequiresBrowser = async (host: string) => {
-    const p = await meta.getDomainProfile(host);
-    return p?.needsBrowser === true;
-  };
-  const wafPolicy = { persistNeedsBrowser, hostRequiresBrowser };
+  const browserSession =
+    useFixtures || process.env.CLEARBOLT_SKIP_BROWSER === "1"
+      ? null
+      : await openBrowserSession();
+  let browserCloser: (() => Promise<void>) | undefined;
+  try {
+    if (browserSession) {
+      browserCloser = browserSession.close;
+    }
+    const browserFetcher = browserSession?.fetcher;
 
-  const searchRes = await fetchHtmlWithHttpWafPolicy(
-    fetcher,
-    effectiveSearch,
-    wafPolicy,
-  );
-  const searchBuf = Buffer.from(searchRes.body, "utf8");
-  const searchRef = await evidence.put(searchBuf, {
-    adapter: BIZBUYSELL_ADAPTER_ID,
-    contentType: "text/html",
-    sourceUrl: effectiveSearch,
-  });
+    const persistNeedsBrowser = async (host: string) => {
+      await meta.putDomainProfile({
+        host,
+        needsBrowser: true,
+        lastUpdatedAt: new Date().toISOString(),
+      });
+    };
+    const hostRequiresBrowser = async (host: string) => {
+      const p = await meta.getDomainProfile(host);
+      return p?.needsBrowser === true;
+    };
+    const wafPolicy = {
+      persistNeedsBrowser,
+      hostRequiresBrowser,
+      browserFetcher,
+    };
 
-  const keyer = new BizBuySellDedupKeyer();
-  let n = 0;
-  for await (const ref of discoverListingRefs(
-    searchRes.body,
-    effectiveSearch,
-  )) {
-    if (n >= limit) break;
-    const { html, finalUrl } = await fetchListingHtmlWithWafPolicy(
+    const searchRes = await fetchHtmlWithHttpWafPolicy(
       fetcher,
-      ref,
+      effectiveSearch,
       wafPolicy,
     );
-    const detailBuf = Buffer.from(html, "utf8");
-    const evRef = await evidence.put(detailBuf, {
+    const searchBuf = Buffer.from(searchRes.body, "utf8");
+    const searchRef = await evidence.put(searchBuf, {
       adapter: BIZBUYSELL_ADAPTER_ID,
       contentType: "text/html",
-      sourceUrl: finalUrl,
+      sourceUrl: effectiveSearch,
     });
-    const parsed = parseListingPage(html, finalUrl);
-    const record = buildSourceRecord({
-      url: finalUrl,
-      adapter: BIZBUYSELL_ADAPTER_ID,
-      parsed,
-      evidenceRef: evRef,
-    });
-    const r = await ingestSourceRecord(meta, record, { keyer });
-    console.log(`${record.id} -> canonical ${r.canonicalId} (${r.action})`);
-    n++;
+
+    const keyer = new BizBuySellDedupKeyer();
+    let n = 0;
+    for await (const ref of discoverListingRefs(
+      searchRes.body,
+      effectiveSearch,
+    )) {
+      if (n >= limit) break;
+      const { html, finalUrl } = await fetchListingHtmlWithWafPolicy(
+        fetcher,
+        ref,
+        wafPolicy,
+      );
+      const detailBuf = Buffer.from(html, "utf8");
+      const evRef = await evidence.put(detailBuf, {
+        adapter: BIZBUYSELL_ADAPTER_ID,
+        contentType: "text/html",
+        sourceUrl: finalUrl,
+      });
+      const parsed = parseListingPage(html, finalUrl);
+      const record = buildSourceRecord({
+        url: finalUrl,
+        adapter: BIZBUYSELL_ADAPTER_ID,
+        parsed,
+        evidenceRef: evRef,
+      });
+      const r = await ingestSourceRecord(meta, record, { keyer });
+      console.log(`${record.id} -> canonical ${r.canonicalId} (${r.action})`);
+      n++;
+    }
+    console.log(`search evidence: ${searchRef.key} (${searchRef.sha256})`);
+  } finally {
+    await browserCloser?.();
   }
-  console.log(`search evidence: ${searchRef.key} (${searchRef.sha256})`);
 }
 
 async function buildFixtureFetcher(): Promise<MockFetcher> {

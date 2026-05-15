@@ -10,4 +10,8 @@ export {
   type FetchHtmlWithHttpWafPolicyOptions,
   type PersistNeedsBrowserFn,
 } from "./fetch-with-waf-policy.js";
+export {
+  openBrowserSession,
+  type BrowserSession,
+} from "./browser-fetcher.js";
 export * from "./adapters/bizbuysell.js";

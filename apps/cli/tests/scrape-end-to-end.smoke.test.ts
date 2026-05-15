@@ -55,6 +55,7 @@ describe("scrape-end-to-end smoke", () => {
     const tmp = await tmpDataDir();
     process.env.DATA_DIR = tmp;
     process.env.CLEARBOLT_SCRAPE_LIMIT = "10";
+    process.env.CLEARBOLT_SKIP_BROWSER = "1";
     try {
       const domainDir = join(tmp, "domain");
       await mkdir(domainDir, { recursive: true });
@@ -69,10 +70,11 @@ describe("scrape-end-to-end smoke", () => {
       );
       await expect(
         runCli(["node", "cli", "scrape", fixtureSearch, "--fixtures"]),
-      ).rejects.toThrow(/browser lane \(needsBrowser\)/);
+      ).rejects.toThrow(/requires the browser lane/);
     } finally {
       process.env.DATA_DIR = undefined;
       process.env.CLEARBOLT_SCRAPE_LIMIT = undefined;
+      process.env.CLEARBOLT_SKIP_BROWSER = undefined;
       await rm(tmp, { recursive: true, force: true });
     }
   });

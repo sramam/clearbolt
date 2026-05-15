@@ -58,15 +58,42 @@ describe("fetchHtmlWithHttpWafPolicy", () => {
     expect(persisted).toEqual([]);
   });
 
-  it("persists_needs_browser_after_max_rate_limited_attempts", async () => {
-    const fetcher = new SequencedFetcher([
+  it("persists_needs_browser_after_max_rate_limited_attempts_then_browser", async () => {
+    const http = new SequencedFetcher([
+      { status: 429, body: "a", finalUrl: url, headers: {} },
+      { status: 429, body: "b", finalUrl: url, headers: {} },
+      { status: 429, body: "c", finalUrl: url, headers: {} },
+    ]);
+    const browser = new SequencedFetcher([
+      {
+        status: 200,
+        body: "<html>browser-lane</html>",
+        finalUrl: url,
+        headers: {},
+      },
+    ]);
+    const persisted: string[] = [];
+    const res = await fetchHtmlWithHttpWafPolicy(http, url, {
+      persistNeedsBrowser: async (h) => {
+        persisted.push(h);
+      },
+      maxHttpAttempts: 3,
+      browserFetcher: browser,
+      ...fastRetry,
+    });
+    expect(res.body).toContain("browser-lane");
+    expect(persisted).toEqual(["www.bizbuysell.com"]);
+  });
+
+  it("throws_after_max_rate_limited_when_no_browser_fetcher", async () => {
+    const http = new SequencedFetcher([
       { status: 429, body: "a", finalUrl: url, headers: {} },
       { status: 429, body: "b", finalUrl: url, headers: {} },
       { status: 429, body: "c", finalUrl: url, headers: {} },
     ]);
     const persisted: string[] = [];
     await expect(
-      fetchHtmlWithHttpWafPolicy(fetcher, url, {
+      fetchHtmlWithHttpWafPolicy(http, url, {
         persistNeedsBrowser: async (h) => {
           persisted.push(h);
         },
@@ -77,18 +104,61 @@ describe("fetchHtmlWithHttpWafPolicy", () => {
     expect(persisted).toEqual(["www.bizbuysell.com"]);
   });
 
-  it("throws_before_fetch_when_host_requires_browser", async () => {
-    const fetcher = new NeverFetch();
+  it("uses_browser_when_host_requires_browser_without_http_fetch", async () => {
+    const http = new NeverFetch();
+    const browser = new SequencedFetcher([
+      {
+        status: 200,
+        body: "<html>browser-only</html>",
+        finalUrl: url,
+        headers: {},
+      },
+    ]);
+    const res = await fetchHtmlWithHttpWafPolicy(http, url, {
+      persistNeedsBrowser: async () => {},
+      hostRequiresBrowser: async () => true,
+      browserFetcher: browser,
+      ...fastRetry,
+    });
+    expect(res.body).toContain("browser-only");
+  });
+
+  it("throws_when_host_requires_browser_but_no_browser_fetcher", async () => {
+    const http = new NeverFetch();
     await expect(
-      fetchHtmlWithHttpWafPolicy(fetcher, url, {
+      fetchHtmlWithHttpWafPolicy(http, url, {
         persistNeedsBrowser: async () => {},
         hostRequiresBrowser: async () => true,
         ...fastRetry,
       }),
-    ).rejects.toThrow(/browser lane \(needsBrowser\)/);
+    ).rejects.toThrow(/requires the browser lane/);
   });
 
-  it("persists_on_challenge_without_extra_http_retries", async () => {
+  it("persists_on_challenge_then_browser_when_configured", async () => {
+    const http = new SequencedFetcher([
+      { status: 403, body: "forbidden", finalUrl: url, headers: {} },
+    ]);
+    const browser = new SequencedFetcher([
+      {
+        status: 200,
+        body: "<html>via-browser</html>",
+        finalUrl: url,
+        headers: {},
+      },
+    ]);
+    const persisted: string[] = [];
+    const res = await fetchHtmlWithHttpWafPolicy(http, url, {
+      persistNeedsBrowser: async (h) => {
+        persisted.push(h);
+      },
+      browserFetcher: browser,
+      ...fastRetry,
+    });
+    expect(res.body).toContain("via-browser");
+    expect(persisted).toEqual(["www.bizbuysell.com"]);
+  });
+
+  it("persists_on_challenge_without_browser_still_throws", async () => {
     const fetcher = new SequencedFetcher([
       { status: 403, body: "forbidden", finalUrl: url, headers: {} },
     ]);

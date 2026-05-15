@@ -18,6 +18,9 @@
     "@clearbolt/core": "workspace:*",
     "cheerio": "^1.0.0"
   },
+  "optionalDependencies": {
+    "playwright": "^1.52.0"
+  },
   "devDependencies": {
     "typescript": "^5.7.3"
   }
