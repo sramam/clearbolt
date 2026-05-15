@@ -5,15 +5,19 @@ import { fileURLToPath } from "node:url";
 import { SourceRecordSchema } from "@clearbolt/core";
 import type { RawResponse } from "@clearbolt/core";
 import { BizBuySellDedupKeyer, ingestSourceRecord } from "@clearbolt/dedup";
+import type { Fetcher } from "@clearbolt/scraper";
 import {
   BIZBUYSELL_ADAPTER_ID,
   HttpFetcher,
   MockFetcher,
   buildSourceRecord,
+  classifyWaf,
   discoverListingRefs,
   fetchListingHtml,
   parseListingPage,
   parseSearchUrl,
+  planHttpLaneAfterWaf,
+  throttleHost,
 } from "@clearbolt/scraper";
 import { DiskEvidenceStore, DiskMetadataStore } from "@clearbolt/storage";
 
@@ -29,6 +33,39 @@ async function streamToString(stream: Readable): Promise<string> {
     chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
   }
   return Buffer.concat(chunks).toString("utf8");
+}
+
+/** Bounded HTTP retries; persists `needsBrowser` when the HTTP lane is done. */
+async function fetchSearchWithWafPolicy(
+  fetcher: Fetcher,
+  searchUrl: string,
+  meta: DiskMetadataStore,
+): Promise<RawResponse> {
+  const host = new URL(searchUrl).hostname;
+  let attempt = 0;
+  let searchRes = await fetcher.fetch({ url: searchUrl });
+  for (;;) {
+    const waf = classifyWaf(searchRes.status, searchRes.body);
+    const plan = planHttpLaneAfterWaf(waf, {
+      httpAttemptIndex: attempt,
+      maxHttpAttempts: 3,
+    });
+    if (plan.kind === "ok") return searchRes;
+    if (plan.kind === "retry_http") {
+      attempt++;
+      await throttleHost(host, 75);
+      searchRes = await fetcher.fetch({ url: searchUrl });
+      continue;
+    }
+    await meta.putDomainProfile({
+      host,
+      needsBrowser: true,
+      lastUpdatedAt: new Date().toISOString(),
+    });
+    throw new Error(
+      `WAF ${waf} on HTTP lane for ${searchUrl} (attempt ${attempt}); needsBrowser=true stored for ${host}`,
+    );
+  }
 }
 
 export async function runCli(argv: string[]): Promise<void> {
@@ -74,7 +111,11 @@ async function cmdScrape(args: string[]): Promise<void> {
   const fetcher = useFixtures ? await buildFixtureFetcher() : new HttpFetcher();
   const limit = Number.parseInt(process.env.CLEARBOLT_SCRAPE_LIMIT ?? "10", 10);
 
-  const searchRes = await fetcher.fetch({ url: effectiveSearch });
+  const searchRes = await fetchSearchWithWafPolicy(
+    fetcher,
+    effectiveSearch,
+    meta,
+  );
   const searchBuf = Buffer.from(searchRes.body, "utf8");
   const searchRef = await evidence.put(searchBuf, {
     adapter: BIZBUYSELL_ADAPTER_ID,
