@@ -14,6 +14,8 @@ pnpm install
 pnpm build
 ```
 
+**HTTPS (AIA):** `HttpFetcher` uses Node `https` and, on incomplete certificate chains, fetches the missing intermediate via the leaf’s AIA “CA Issuers” URL (see `packages/scraper/src/tls-aia.ts`). Integration coverage hits `incomplete-chain.badssl.com` and needs outbound network in `pnpm test`.
+
 **Browser lane (Playwright):** after install, download Chromium once (needed for real `clearbolt scrape` when HTTP is not enough):
 
 ```bash

@@ -33,23 +33,23 @@ flowchart LR
 
 ## TLS / certificate chain (AIA)
 
-`packages/scraper/src/tls-aia.ts` (planned) is a per-domain HTTPS agent factory with AIA-fetched intermediate certificates.
+`packages/scraper/src/tls-aia.ts` is a per-host `https.Agent` factory with AIA-fetched intermediate certificates (parsed with `node-forge`).
 
 When a server sends an incomplete certificate chain (missing intermediate), Node.js's TLS layer rejects it with `UNABLE_TO_VERIFY_LEAF_SIGNATURE`. Browsers handle this via AIA (Authority Information Access) — they read the CA Issuers URL from the leaf cert, download the intermediate, and build the full chain automatically.
 
-This module replicates that behavior for `got` / `node:https`:
+`HttpFetcher` uses native `node:https` and, on that TLS failure, retries with an agent built as follows:
 
-1. Connect with `rejectUnauthorized: false` to get the leaf cert.
+1. Connect with `rejectUnauthorized: false` to read the leaf cert.
 2. Parse the AIA "CA Issuers" URL from the cert extensions.
 3. Download the intermediate cert (typically DER over HTTP).
-4. Build an `https.Agent` with root CAs + the intermediate.
-5. Cache the agent per hostname for reuse.
+4. Build an `https.Agent` with `tls.rootCertificates` + the intermediate PEM.
+5. Cache the agent per host:port for reuse.
 
-Many large CDNs serve incomplete chains; browsers hide it, Node does not. AIA fixes Node-side robots, sitemap, SEO/favicon, and the HTTP HTML pipeline so those calls verify TLS like a browser. On TLS failure, HTTP handling retries after AIA or falls back to the browser if AIA cannot fix it.
+Many large CDNs serve incomplete chains; browsers hide it, Node does not. AIA fixes the HTTP HTML pipeline so those calls verify TLS like a browser. On TLS failure that AIA cannot fix, HTTP handling falls back to the browser lane when Playwright is available.
 
 ## WAF / Akamai-style blocks
 
-- **HTTP path**: 401/403 -> treat as WAF/auth -> escalate to Playwright (not endless retries on `got`).
+- **HTTP path**: 401/403 -> treat as WAF/auth -> escalate to Playwright (not endless retries on bare `https`).
 - **Browser path**: same statuses trigger extra wait and a minimum HTML size check (`wafMinHtmlChars` / `wafExtraWaitMs`). If the body stays tiny, treat as blocked and error so retry/proxy-rotation logic can kick in.
 
 The `WafDetector` contract classifies responses into `ok | challenge | block | rate_limited` and emits escalation hints. V0 ships heuristic rule packs covering Akamai, Cloudflare, PerimeterX. New WAF families add as plugin rule packs.
@@ -121,7 +121,7 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 
 ## V0 walking skeleton (this package's slice)
 
-- `HttpFetcher` (got + AIA) + `MockFetcher` (tests).
+- `HttpFetcher` — Node `https` + **AIA** (`tls-aia.ts`, `node-forge` for Authority Information Access) with per-host agent cache; HTTP URLs still use `fetch`. `MockFetcher` (tests).
 - `ThrottleManager` (in-process AIMD, in-memory state — persistence to `MetadataStore` lands when MetadataStore lands).
 - `WafDetector` with Akamai rule pack (since BizBuySell uses Akamai, this exercises the wisdom up front).
 - `crawl-policy.ts` + `fetch-with-waf-policy.ts` — bounded HTTP retries after `classifyWaf`; when the HTTP lane is exhausted, persist `needsBrowser` then optionally continue on the Playwright-backed `browserFetcher` (wired in the CLI scrape path with `openBrowserSession`).
@@ -145,7 +145,8 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 - **Given** any `Adapter`, **when** the conformance suite runs, **then** `parseSearchUrl` round-trips, `discoverListingRefs` yields at least one ref on a fixture page, and `fetchListingDetail` produces a `RawSourceRecord` with provenance. Coverage: golden-set. Test: `packages/scraper/src/conformance/adapter.suite.ts` (TBD V0).
 
 ### Functional
-- **Given** an HTTP response with `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, **when** AIA fetch succeeds, **then** the agent is rebuilt and the retry succeeds without falling back to browser. Coverage: integration. Test: `packages/scraper/tests/aia-recovery.test.ts` (TBD V0).
+- **Given** an HTTPS host serving an incomplete certificate chain, **when** `HttpFetcher` connects, **then** AIA fetches the missing intermediate, builds an `https.Agent` with the full chain, caches it for the host, and the request succeeds. Coverage: integration. Test: `packages/scraper/tests/aia.test.ts::aia_completes_chain_for_incomplete_host`.
+- **Given** a TLS leaf certificate with an Authority Information Access extension, **when** the CA Issuers URL is extracted, **then** it is a valid `http://` or `https://` URL. Coverage: integration. Test: `packages/scraper/tests/aia.test.ts::extracts_ca_issuers_url_from_incomplete_chain_leaf`.
 - **Given** a domain that returns 401/403 to HTTP twice in a row, **when** the third attempt completes, **then** the domain's `DomainProfile.needsBrowser` is `true` and subsequent fetches route to the browser lane. Coverage: integration. Test: `packages/scraper/tests/needs-browser-promotion.test.ts` (TBD V0).
 - **Given** a 429 with `Retry-After`, **when** received, **then** `DomainThrottleManager` waits at least the indicated interval before the next request to that domain. Coverage: integration. Test: `packages/scraper/tests/aimd-respects-retry-after.test.ts` (TBD V0).
 - **Given** an HTTP response classified as SPA-skeleton (low text + framework markers), **when** received, **then** the request is escalated to the browser lane. Coverage: integration. Test: `packages/scraper/tests/spa-detection.test.ts` (TBD V0).
