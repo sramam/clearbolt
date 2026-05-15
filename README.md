@@ -14,6 +14,14 @@ pnpm install
 pnpm build
 ```
 
+**Browser lane (Playwright):** after install, download Chromium once (needed for real `clearbolt scrape` when HTTP is not enough):
+
+```bash
+pnpm ensure:playwright
+```
+
+Skip in automation with `CLEARBOLT_SKIP_PLAYWRIGHT_INSTALL=1`. Tests that must avoid launching a browser use `CLEARBOLT_SKIP_BROWSER=1` (see `apps/cli` scrape smoke tests).
+
 ### Dependency release lag
 
 We intentionally lag **~30 days (~4 weeks)** behind the newest npm releases: pnpm `minimumReleaseAge`, a lockfile verifier (`pnpm run verify:dependency-lag`), and Renovate are all aligned. Details and how to change the window: [docs/operations/dependency-lag.md](./docs/operations/dependency-lag.md).
@@ -51,6 +59,7 @@ docker compose -f docker-compose.dev.yml up -d
 | `pnpm lint` | Biome |
 | `pnpm lint:specs` | Advisory markdown spec checks |
 | `pnpm verify:dependency-lag` | Lockfile vs npm publish dates (30-day lag policy) |
+| `pnpm ensure:playwright` | Install Playwright Chromium for `@clearbolt/scraper` (browser lane) |
 
 ## Layout
 

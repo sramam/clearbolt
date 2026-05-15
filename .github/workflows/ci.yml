@@ -18,6 +18,8 @@ jobs:
           node-version: "22"
           cache: "pnpm"
       - run: pnpm install
+      - name: Smoke ensure-playwright script (skip browser download in CI)
+        run: CLEARBOLT_SKIP_PLAYWRIGHT_INSTALL=1 pnpm ensure:playwright
       - run: pnpm run verify:dependency-lag
       - run: pnpm lint
       - run: pnpm typecheck

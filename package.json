@@ -12,6 +12,7 @@
     "lint:fix": "biome check --write .",
     "lint:specs": "node scripts/lint-specs.mjs",
     "verify:dependency-lag": "node scripts/verify-dependency-lag.mjs",
+    "ensure:playwright": "node scripts/ensure-playwright.mjs",
     "clearbolt": "node ./apps/cli/dist/cli.js"
   },
   "devDependencies": {

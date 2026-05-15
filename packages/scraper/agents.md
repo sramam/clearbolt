@@ -125,7 +125,7 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 - `ThrottleManager` (in-process AIMD, in-memory state — persistence to `MetadataStore` lands when MetadataStore lands).
 - `WafDetector` with Akamai rule pack (since BizBuySell uses Akamai, this exercises the wisdom up front).
 - `crawl-policy.ts` + `fetch-with-waf-policy.ts` — bounded HTTP retries after `classifyWaf`; when the HTTP lane is exhausted, persist `needsBrowser` then optionally continue on the Playwright-backed `browserFetcher` (wired in the CLI scrape path with `openBrowserSession`).
-- `BrowserFetcher` — Chromium via Playwright (`openBrowserSession`): one process per CLI scrape, shared across search + listing fetches when HTTP is skipped or exhausted; disabled with `CLEARBOLT_SKIP_BROWSER=1` or `--fixtures`.
+- `BrowserFetcher` — Chromium via Playwright (`openBrowserSession`): one process per CLI scrape, shared across search + listing fetches when HTTP is skipped or exhausted; disabled with `CLEARBOLT_SKIP_BROWSER=1` or `--fixtures`. After `pnpm install`, run **`pnpm ensure:playwright`** from the repo root once per machine/image to download Chromium (see root README).
 - One adapter end-to-end: `adapters/bizbuysell/`.
 
 ## Validation criteria
