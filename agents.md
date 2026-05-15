@@ -148,14 +148,27 @@ CF Pages hosts the Next.js app. CF Workers handle latency-critical edge endpoint
 6. Avoid broad refactors while adapters, schema, and product boundaries are still evolving.
 7. When adding a new system (a new backend, a new sandbox, a new transcriber, a new heuristic), prefer a sibling package over invasive changes to a contract package.
 8. When you make a load-bearing decision, write an ADR in [docs/decisions/](docs/decisions/) and remove the resolved entry from [open.md](docs/decisions/open.md).
-9. **Every spec edit lands with its validation criteria.** New `agents.md`, new ADR, new design doc → must include a `## Validation criteria` (or `## Falsifiability criteria` for ADRs) section before merge. Implementation order inside each step: criteria → failing tests → implementation → green → commit. See [docs/architecture/spec-template.md](docs/architecture/spec-template.md).
+9. **Every spec edit lands with its validation criteria.** New `agents.md`, new ADR, new design doc → must include a `## Validation criteria` (or `## Falsifiability criteria` for ADRs) section before merge. Implementation order inside each step: criteria → **failing tests** → implementation → green → commit (this is the project’s TDD loop; detail in [Test-driven development](#test-driven-development)). See [docs/architecture/spec-template.md](docs/architecture/spec-template.md).
 10. **npm dependency release lag (~30 days / ~4 weeks).** Follow [docs/operations/dependency-lag.md](docs/operations/dependency-lag.md): keep `pnpm-workspace.yaml`, `scripts/dependency-lag.config.json`, and `renovate.json` in sync; avoid refreshing the lockfile with brand-new transitive releases; run `pnpm run verify:dependency-lag` when you touch dependencies. Security bumps before the lag window: use Renovate’s security bypass, temporary `minimumReleaseAgeExclude`, or dated `securityAgeExceptions` in `dependency-lag.config.json` (see that doc).
 11. **Regressions and specs.** If a test that used to pass now fails: fix the code to match the spec first; if the spec is wrong, update the spec in the same PR with clear validation criteria; if you cannot reconcile without dropping or gutting tests or contradicting acceptance criteria, get explicit human approval before merging. Details under [Commit hygiene](#commit-hygiene).
+12. **TDD by default.** For new behavior and contract changes, follow [Test-driven development](#test-driven-development): encode acceptance as tests first when practical, then implement until green.
+
+## Test-driven development (TDD)
+
+Clearbolt expects **tests to lead implementation** for anything that carries a published validation criterion, phase acceptance line, or conformance suite path.
+
+- **New behavior:** add or extend a **failing** automated test that asserts the criterion (unit, integration, or smoke as in [docs/architecture/testing-strategy.md](docs/architecture/testing-strategy.md)), run it red, ship the **smallest** implementation that turns it green, then refactor. Prefer a **tests-first commit** in the same PR when the change is non-trivial (see [Commit hygiene](#commit-hygiene) — “test, then commit”).
+- **Contracts and backends:** before changing a shared interface, extend the **conformance** or contract tests the spec points at ([docs/architecture/contracts.md](docs/architecture/contracts.md)); backends must keep those suites green.
+- **Spikes:** short exploratory code **without** tests is fine in a branch, but **do not merge** unless the spike is thrown away or folded into a test-anchored change set that satisfies the relevant `## Validation criteria`.
+- **Already-green fixes:** pure refactors should keep existing tests green; add tests only when they lock in behavior that was implicit before.
+
+This aligns with principle 5 (specs include validation criteria) and with CI as the backstop for drift.
 
 ## Commit hygiene
 
 Prefer **small, coherent commits** (one logical change per commit) over large “everything at once” checkpoints, so history stays reviewable and `git bisect` stays useful.
 
+- **Default loop:** [Test-driven development](#test-driven-development) (failing test → implement → green), then split commits as below.
 - **Test, then commit:** once the change is covered by the right tests and they pass, **split the diff into sensible commits** (implementation vs tests vs docs) instead of one opaque blob. Avoid committing known-red main unless the team explicitly agreed on a failing-test-first sequence for that task.
 - **Subject line:** imperative mood, about 50 characters, no trailing period. Examples: `feat(storage): stream raw evidence to disk`, `fix(cli): resolve fixture path from dist`, `chore(ci): run dependency lag verifier`.
 - **Style:** [Conventional Commits](https://www.conventionalcommits.org/) optional but encouraged — `feat`, `fix`, `docs`, `chore`, `test`, `ci`, with an optional scope in parentheses (`feat(dedup): …`).
@@ -177,6 +190,7 @@ The repo as a whole is healthy when:
 - **Pluggable everything:** every contract listed in [docs/architecture/contracts.md](docs/architecture/contracts.md) names its conformance suite path; every backend invokes that suite from its tests.
 - **Identity propagation:** for any V1+ trace, querying VictoriaMetrics, the OTel trace backend, and PostHog by the same `traceId` returns correlated results.
 - **Commit hygiene:** merged PRs use scoped, reviewable commits and clear messages; no secrets or local-only artifacts in git history; regressions are fixed or specs are updated in-band—silent test removal or weakened assertions without approval is out of bounds. Coverage: manual review (see [Commit hygiene](#commit-hygiene)).
+- **TDD discipline:** new product behavior and contract changes arrive with tests that encode the stated criteria (failing first when practical); conformance suites cited in [contracts.md](docs/architecture/contracts.md) stay green per backend. Coverage: PR review + CI. See [Test-driven development](#test-driven-development) and [testing-strategy.md](docs/architecture/testing-strategy.md).
 
 Coverage tags: phase acceptance is `smoke`/`integration`; spec lint is `smoke` (script); pluggability is `smoke` (lint); identity propagation is `integration`. Test paths are listed in each downstream spec's `## Validation criteria`.
 

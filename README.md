@@ -20,7 +20,7 @@ We intentionally lag **~30 days (~4 weeks)** behind the newest npm releases: pnp
 
 ### Contributing
 
-Conventions, dependency lag, and **commit hygiene** (small coherent commits, message style, pre-push checks): [agents.md](./agents.md) (see *Commit hygiene*).
+Conventions, dependency lag, **TDD**, and **commit hygiene** (failing test → implement → green, small commits, pre-push checks): [agents.md](./agents.md) (*Test-driven development*, *Commit hygiene*).
 
 ## Commands
 
