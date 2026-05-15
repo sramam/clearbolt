@@ -19,6 +19,12 @@ class SequencedFetcher implements Fetcher {
 const url = "https://www.bizbuysell.com/california-business-for-sale/1234567/";
 const fastRetry = { throttleMsBetweenRetries: 0 };
 
+class NeverFetch implements Fetcher {
+  async fetch(): Promise<RawResponse> {
+    throw new Error("fetch should not run when hostRequiresBrowser");
+  }
+}
+
 describe("fetchHtmlWithHttpWafPolicy", () => {
   it("returns_first_ok_response", async () => {
     const fetcher = new SequencedFetcher([
@@ -69,6 +75,17 @@ describe("fetchHtmlWithHttpWafPolicy", () => {
       }),
     ).rejects.toThrow(/needsBrowser=true stored/);
     expect(persisted).toEqual(["www.bizbuysell.com"]);
+  });
+
+  it("throws_before_fetch_when_host_requires_browser", async () => {
+    const fetcher = new NeverFetch();
+    await expect(
+      fetchHtmlWithHttpWafPolicy(fetcher, url, {
+        persistNeedsBrowser: async () => {},
+        hostRequiresBrowser: async () => true,
+        ...fastRetry,
+      }),
+    ).rejects.toThrow(/browser lane \(needsBrowser\)/);
   });
 
   it("persists_on_challenge_without_extra_http_retries", async () => {

@@ -131,6 +131,7 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 ## Validation criteria
 
 ### Contracts
+- **Given** `hostRequiresBrowser` is true for a host, **when** `fetchHtmlWithHttpWafPolicy` runs, **then** it throws before any `Fetcher.fetch` and does not call `persistNeedsBrowser`. Coverage: integration. Test: `packages/scraper/tests/fetch-waf-policy.test.ts::throws_before_fetch_when_host_requires_browser`.
 - **Given** a `Fetcher` that returns 429 twice then 200 for the same URL, **when** `fetchHtmlWithHttpWafPolicy` runs with default `maxHttpAttempts`, **then** the third response is returned and `persistNeedsBrowser` is never called. Coverage: integration. Test: `packages/scraper/tests/fetch-waf-policy.test.ts::retries_rate_limit_then_succeeds`.
 - **Given** a `Fetcher` that returns only 429 for the same URL, **when** `fetchHtmlWithHttpWafPolicy` exhausts HTTP retries, **then** `persistNeedsBrowser` is invoked once for that host and the function throws. Coverage: integration. Test: `packages/scraper/tests/fetch-waf-policy.test.ts::persists_needs_browser_after_max_rate_limited_attempts`.
 - **Given** any `Fetcher` backend, **when** the conformance suite runs, **then** all assertions pass (`Fetcher.fetch` returns a `RawResponse` with `status`, `body`, `finalUrl`, `headers`, `evidenceRef`). Coverage: integration. Test: `packages/scraper/src/conformance/fetcher.suite.ts` (TBD V0).

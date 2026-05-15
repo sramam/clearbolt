@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readdir, rm } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DiskMetadataStore } from "@clearbolt/storage";
 import { describe, expect, it } from "vitest";
@@ -44,6 +44,32 @@ describe("scrape-end-to-end smoke", () => {
       );
       expect(maxSources).toBeGreaterThanOrEqual(2);
       expect(merged?.sourceIds.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      process.env.DATA_DIR = undefined;
+      process.env.CLEARBOLT_SCRAPE_LIMIT = undefined;
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("scrape_aborts_when_domain_marked_needs_browser", async () => {
+    const tmp = await tmpDataDir();
+    process.env.DATA_DIR = tmp;
+    process.env.CLEARBOLT_SCRAPE_LIMIT = "10";
+    try {
+      const domainDir = join(tmp, "domain");
+      await mkdir(domainDir, { recursive: true });
+      await writeFile(
+        join(domainDir, "www.bizbuysell.com.json"),
+        JSON.stringify({
+          host: "www.bizbuysell.com",
+          needsBrowser: true,
+          lastUpdatedAt: new Date().toISOString(),
+        }),
+        "utf8",
+      );
+      await expect(
+        runCli(["node", "cli", "scrape", fixtureSearch, "--fixtures"]),
+      ).rejects.toThrow(/browser lane \(needsBrowser\)/);
     } finally {
       process.env.DATA_DIR = undefined;
       process.env.CLEARBOLT_SCRAPE_LIMIT = undefined;

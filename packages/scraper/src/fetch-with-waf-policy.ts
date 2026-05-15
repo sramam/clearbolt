@@ -12,6 +12,11 @@ export type FetchHtmlWithHttpWafPolicyOptions = {
   maxHttpAttempts?: number;
   /** Gap between HTTP retries for the same host (default 75). */
   throttleMsBetweenRetries?: number;
+  /**
+   * When true, skip the HTTP lane entirely (no wasted retries). Callers
+   * typically read `MetadataStore.getDomainProfile(host)?.needsBrowser`.
+   */
+  hostRequiresBrowser?: (host: string) => Promise<boolean>;
 };
 
 /**
@@ -24,6 +29,14 @@ export async function fetchHtmlWithHttpWafPolicy(
   options: FetchHtmlWithHttpWafPolicyOptions,
 ): Promise<RawResponse> {
   const host = new URL(url).hostname;
+  if (options.hostRequiresBrowser) {
+    const browser = await options.hostRequiresBrowser(host);
+    if (browser) {
+      throw new Error(
+        `Host ${host} requires the browser lane (needsBrowser); HTTP-only fetch skipped for ${url}`,
+      );
+    }
+  }
   const maxHttpAttempts = options.maxHttpAttempts ?? 3;
   const throttleMs = options.throttleMsBetweenRetries ?? 75;
   let attempt = 0;

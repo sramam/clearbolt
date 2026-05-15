@@ -82,7 +82,11 @@ async function cmdScrape(args: string[]): Promise<void> {
       lastUpdatedAt: new Date().toISOString(),
     });
   };
-  const wafPolicy = { persistNeedsBrowser };
+  const hostRequiresBrowser = async (host: string) => {
+    const p = await meta.getDomainProfile(host);
+    return p?.needsBrowser === true;
+  };
+  const wafPolicy = { persistNeedsBrowser, hostRequiresBrowser };
 
   const searchRes = await fetchHtmlWithHttpWafPolicy(
     fetcher,
