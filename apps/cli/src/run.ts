@@ -32,12 +32,68 @@ async function streamToString(stream: Readable): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+function parseHostArg(raw: string): string {
+  const s = raw.trim();
+  if (!s) throw new Error("host required");
+  try {
+    if (s.includes("://")) return new URL(s).hostname;
+    return new URL(`https://${s}`).hostname;
+  } catch {
+    throw new Error(`invalid host: ${raw}`);
+  }
+}
+
+async function cmdDomain(args: string[]): Promise<void> {
+  const sub = args[0];
+  if (!sub || sub === "help" || sub === "-h") {
+    throw new Error(
+      "usage: clearbolt domain show <host>\n       clearbolt domain mark <host> --browser | --http",
+    );
+  }
+  const root = dataRoot();
+  await mkdir(root, { recursive: true });
+  const meta = new DiskMetadataStore(root);
+
+  if (sub === "show") {
+    const hostArg = args[1];
+    if (!hostArg) throw new Error("usage: clearbolt domain show <host>");
+    const host = parseHostArg(hostArg);
+    const p = await meta.getDomainProfile(host);
+    console.log(p ? JSON.stringify(p, null, 2) : `no profile for ${host}`);
+    return;
+  }
+
+  if (sub === "mark") {
+    const hostArg = args[1];
+    if (!hostArg)
+      throw new Error("usage: clearbolt domain mark <host> --browser | --http");
+    const host = parseHostArg(hostArg);
+    const flags = args.slice(2);
+    const wantBrowser = flags.includes("--browser");
+    const wantHttp = flags.includes("--http");
+    if (wantBrowser === wantHttp) {
+      throw new Error("mark requires exactly one of --browser or --http");
+    }
+    await meta.putDomainProfile({
+      host,
+      needsBrowser: wantBrowser,
+      lastUpdatedAt: new Date().toISOString(),
+    });
+    console.log(`domain ${host} needsBrowser=${wantBrowser}`);
+    return;
+  }
+
+  throw new Error(`unknown domain subcommand: ${sub}`);
+}
+
 export async function runCli(argv: string[]): Promise<void> {
   const [, , cmd, ...rest] = argv;
   if (!cmd || cmd === "help" || cmd === "-h") {
     console.log(`clearbolt scrape <bizbuysell-search-url> [--fixtures]
 clearbolt deals list
 clearbolt replay
+clearbolt domain show <host>
+clearbolt domain mark <host> --browser | --http
 Env: DATA_DIR (default ./data), CLEARBOLT_SCRAPE_LIMIT (default 10)`);
     return;
   }
@@ -51,6 +107,10 @@ Env: DATA_DIR (default ./data), CLEARBOLT_SCRAPE_LIMIT (default 10)`);
   }
   if (cmd === "replay") {
     await cmdReplay();
+    return;
+  }
+  if (cmd === "domain") {
+    await cmdDomain(rest);
     return;
   }
   throw new Error(`unknown command: ${cmd}`);
