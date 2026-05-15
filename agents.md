@@ -150,16 +150,20 @@ CF Pages hosts the Next.js app. CF Workers handle latency-critical edge endpoint
 8. When you make a load-bearing decision, write an ADR in [docs/decisions/](docs/decisions/) and remove the resolved entry from [open.md](docs/decisions/open.md).
 9. **Every spec edit lands with its validation criteria.** New `agents.md`, new ADR, new design doc → must include a `## Validation criteria` (or `## Falsifiability criteria` for ADRs) section before merge. Implementation order inside each step: criteria → failing tests → implementation → green → commit. See [docs/architecture/spec-template.md](docs/architecture/spec-template.md).
 10. **npm dependency release lag (~30 days / ~4 weeks).** Follow [docs/operations/dependency-lag.md](docs/operations/dependency-lag.md): keep `pnpm-workspace.yaml`, `scripts/dependency-lag.config.json`, and `renovate.json` in sync; avoid refreshing the lockfile with brand-new transitive releases; run `pnpm run verify:dependency-lag` when you touch dependencies. Security bumps before the lag window: use Renovate’s security bypass, temporary `minimumReleaseAgeExclude`, or dated `securityAgeExceptions` in `dependency-lag.config.json` (see that doc).
+11. **Regressions and specs.** If a test that used to pass now fails: fix the code to match the spec first; if the spec is wrong, update the spec in the same PR with clear validation criteria; if you cannot reconcile without dropping or gutting tests or contradicting acceptance criteria, get explicit human approval before merging. Details under [Commit hygiene](#commit-hygiene).
 
 ## Commit hygiene
 
 Prefer **small, coherent commits** (one logical change per commit) over large “everything at once” checkpoints, so history stays reviewable and `git bisect` stays useful.
 
+- **Test, then commit:** once the change is covered by the right tests and they pass, **split the diff into sensible commits** (implementation vs tests vs docs) instead of one opaque blob. Avoid committing known-red main unless the team explicitly agreed on a failing-test-first sequence for that task.
 - **Subject line:** imperative mood, about 50 characters, no trailing period. Examples: `feat(storage): stream raw evidence to disk`, `fix(cli): resolve fixture path from dist`, `chore(ci): run dependency lag verifier`.
 - **Style:** [Conventional Commits](https://www.conventionalcommits.org/) optional but encouraged — `feat`, `fix`, `docs`, `chore`, `test`, `ci`, with an optional scope in parentheses (`feat(dedup): …`).
 - **Completeness:** each commit should leave the repo in a sensible state (changed packages still typecheck; touched areas covered by existing or new tests when the change is non-trivial).
 - **Before push:** run `pnpm lint`, `pnpm test`, and `pnpm lint:specs`; when `pnpm-lock.yaml` or dependencies change, also run `pnpm run verify:dependency-lag`.
 - **Hygiene:** never commit secrets, `.env*`, or local `data/`; keep `pnpm-lock.yaml` in sync with manifest changes in the same PR when possible.
+
+**When a previously passing test breaks:** (1) assume the spec is right — fix the code first. (2) If the failure exposes a wrong or outdated spec, **negotiate with the spec**: update the relevant `agents.md`, phase doc, ADR, or architecture doc in the **same PR** as the behavior change, keep or adjust `## Validation criteria`, and explain the shift in the PR description. (3) If you cannot reconcile code, tests, and spec without deleting coverage, weakening a load-bearing assertion, or contradicting published acceptance criteria, **stop and ask for explicit human approval** before proceeding; do not silently drop or gut tests.
 
 Large one-off imports (e.g. initial monorepo scaffold) may use a short series of commits by concern (docs → toolchain → `packages/core` → …) instead of a single massive commit.
 
@@ -172,7 +176,7 @@ The repo as a whole is healthy when:
 - **Dependency release lag:** `pnpm-workspace.yaml` `minimumReleaseAge` matches `scripts/dependency-lag.config.json`; CI runs `pnpm run verify:dependency-lag` on the committed lockfile. Policy: [docs/operations/dependency-lag.md](docs/operations/dependency-lag.md).
 - **Pluggable everything:** every contract listed in [docs/architecture/contracts.md](docs/architecture/contracts.md) names its conformance suite path; every backend invokes that suite from its tests.
 - **Identity propagation:** for any V1+ trace, querying VictoriaMetrics, the OTel trace backend, and PostHog by the same `traceId` returns correlated results.
-- **Commit hygiene:** merged PRs use scoped, reviewable commits and clear messages; no secrets or local-only artifacts in git history. Coverage: manual review (see [Commit hygiene](#commit-hygiene)).
+- **Commit hygiene:** merged PRs use scoped, reviewable commits and clear messages; no secrets or local-only artifacts in git history; regressions are fixed or specs are updated in-band—silent test removal or weakened assertions without approval is out of bounds. Coverage: manual review (see [Commit hygiene](#commit-hygiene)).
 
 Coverage tags: phase acceptance is `smoke`/`integration`; spec lint is `smoke` (script); pluggability is `smoke` (lint); identity propagation is `integration`. Test paths are listed in each downstream spec's `## Validation criteria`.
 
