@@ -10,6 +10,17 @@ Inspired by Andrej Karpathy's [llm-wiki gist](https://gist.github.com/karpathy/4
 2. **Wiki** (LLM-maintained markdown) — per-workspace per-deal directory tree of pages.
 3. **Schema** (`AGENTS.md`) — the maintainer agent reads this to know how to behave: page categories, naming conventions, required cross-references, lint rules, what to write back, what to leave alone.
 
+## Original sources in markdown (hard requirement)
+
+Markdown the maintainer writes is useless for diligence if you cannot jump back to the live listing, broker site, or capture. **Every page that summarizes scraped or captured web content must keep a human-clickable link to the original source**, not only an internal id.
+
+- **Marketplace / HTTP listings:** include at least one markdown link using the **canonical HTTPS listing URL** (same host/path the user would open in a browser: typically `SourceRecord.url` or the post-redirect `finalUrl` stored with the evidence). Plain hostname text without a scheme is not enough.
+- **Per-deal rollups** (`summary.md`, `financials.md`, `operations.md`, etc.): repeat or link to `deals/<id>/sources.md` where each row already lists `[label](https://…)` plus optional `sources.md#<sourceRecordId>` anchors for deep links into the evidence table.
+- **Ad-hoc ingest pages** (`deals/<id>/pages/source-*.md`): must open with or close with a **Sources** block: bullet list of `[short label](full listing URL)` lines; add `SourceRecord` id in prose or anchor for traceability.
+- **WorkspaceCapture / Transcript artifacts:** link to the capture or transcript viewer URL (or stable deep link) where humans can replay the original, not only the internal capture id.
+
+`wiki-lint` treats “claim supported only by an internal id with no outbound URL where a URL exists” as a fixable violation unless the source is genuinely offline-only.
+
 ## Layout (per workspace)
 
 ```
@@ -49,7 +60,7 @@ Built on top of the harness ([harness.md](harness.md)). Each operation is a skil
 Given a new `SourceRecord`, `WorkspaceCapture`, or `Transcript`:
 
 1. Read existing wiki pages that may be touched (deal summary, financials, operations, sources, broker page, industry page).
-2. Write a summary page for the new artifact (e.g. `deals/<id>/pages/source-2025-05-08-bizbuysell.md`).
+2. Write a summary page for the new artifact (e.g. `deals/<id>/pages/source-2025-05-08-bizbuysell.md`), and **include markdown links to the original listing or capture URLs** (see [Original sources in markdown](#original-sources-in-markdown-hard-requirement)).
 3. Update entity pages (broker, owner, firm) with new facts and citations.
 4. Update concept pages (industry, geography) with new evidence if the deal is material to them.
 5. Append to `log.md` (workspace-level) and to the deal's `log.md`.
@@ -112,6 +123,7 @@ Wiki maintainer runs on **Fly.io**. Long-running, multi-tool, multi-page workflo
 ### Quality / accretion
 - **Given** 30 days of V1 usage, **when** measured, **then** wiki pages per deal grow over time (accretion) AND `wiki.feedback_given` per `wiki.query_asked` ratio is ≥ 10% (users find the answers useful). Coverage: smoke (PostHog dashboard). Test: `scripts/wiki-health.mjs` (TBD V1.5).
 - **Given** any wiki page, **when** queried, **then** every factual claim has a citation back to a `SourceRecord`, `Capture`, or `Transcript` (no unsourced claims). Coverage: golden-set + sampled human review. Test: `packages/wiki/tests/citations-required.test.ts` (TBD V1).
+- **Given** any maintainer-written page that summarizes a web `SourceRecord`, **when** read, **then** the page contains at least one markdown link whose target is the **original listing HTTPS URL** (or capture/transcript deep link), not only `sources.md#` anchors or bare ids. Coverage: golden-set + `wiki-lint`. Test: `packages/wiki/tests/original-source-url-linked.test.ts` (TBD V1).
 
 ### Storage
 - **Given** the V0 `wiki-fs` backend, **when** the maintainer writes a page, **then** the page appears as a markdown file under `workspaces/<id>/wiki/` and is human-readable with `cat`. Coverage: integration. Test: `packages/wiki-fs/tests/written-pages-are-cat-readable.test.ts` (TBD V0).

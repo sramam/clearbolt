@@ -14,6 +14,12 @@ Cross-cuts [`docs/architecture/wiki.md`](../../docs/architecture/wiki.md). ADR: 
 - The `AGENTS.md` schema template for new workspaces' wiki directories.
 - Page templates (`summary.md`, `financials.md`, `sources.md`, `log.md`, ...) seeded on first ingest.
 
+## Original listing and capture URLs in markdown
+
+Maintainer output must stay **grounded in the open web**: any page that summarizes a scraped listing or capture includes at least one **markdown link** whose URL is the **original HTTPS listing URL** (or capture / transcript deep link humans can open). Internal anchors like `sources.md#<sourceRecordId>` are encouraged *in addition* for traceability, not as a substitute for the outbound URL when one exists.
+
+The workspace `AGENTS.md` schema should require a **Sources** subsection (or equivalent) on `deals/<id>/pages/source-*.md` and require `sources.md` rows to use `[label](https://…)` for the listing column.
+
 ## Layout schema
 
 Per workspace:
@@ -68,6 +74,11 @@ entity pages (broker, owner, firm), update concept pages where material,
 append to the deal's log.md and the workspace's log.md, and refresh
 index.md files.
 
+Hard rule: every new or updated page that reflects a SourceRecord MUST
+include a markdown link to that record's original listing URL (https)
+in the body or in a trailing "Sources" bullet list. For captures and
+transcripts, link to the human-viewable replay URL when available.
+
 Use these tools:
   - read(path)
   - write(path, content)
@@ -99,7 +110,8 @@ Question: {{question}}
 
 1. Search the wiki (lexical + vector via the search tool).
 2. Read candidate pages.
-3. Synthesize an answer with citations.
+3. Synthesize an answer with citations (include outbound listing/capture
+   links when the answer restates scraped facts).
 4. File the answer back as a new page under deals/<id>/pages/q-<slug>.md
    so the wiki compounds.
 
@@ -129,6 +141,8 @@ Lint the wiki for:
   - Missing pages (deal has financial sources but no financials.md).
   - Missing cross-references (broker mentioned in summary.md but not
     linked to broker entity page).
+  - Pages that summarize SourceRecords but lack an https:// outbound
+    markdown link to the original listing (when the URL is known).
 
 For high-confidence fixes, apply them. For low-confidence ones, queue
 for human review.
@@ -160,6 +174,7 @@ Per [`docs/decisions/0012-multi-tenancy-workspace-as-tenant.md`](../../docs/deci
 
 ### Provenance / "evidence over guesses"
 - **Given** any wiki page produced by the maintainer, **when** read, **then** every non-trivial claim links to a source via `[fact](sources.md#evidence-id)` style citation. Coverage: lint over wiki-fs in tests. Test: `packages/wiki/tests/no-claim-without-citation.test.ts` (TBD V1).
+- **Given** any page that summarizes a `SourceRecord` from a marketplace, **when** read, **then** the page includes at least one markdown link with an `https://` URL pointing at the **original listing** (user-openable), per [Original listing and capture URLs in markdown](#original-listing-and-capture-urls-in-markdown). Coverage: `wiki-lint` + golden-set. Test: `packages/wiki/tests/original-source-url-linked.test.ts` (TBD V1).
 
 ### Tenant isolation (hard rule)
 - **Given** workspace A's `WikiMaintainer`, **when** invoked, **then** it cannot read or write under `workspaces/<other>/wiki/`. Coverage: integration. Test: `packages/wiki/tests/maintainer-tenant-scoped.test.ts` (TBD V1).

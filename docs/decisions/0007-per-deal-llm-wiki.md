@@ -41,9 +41,9 @@ Layout, operations, and storage backends specified in [`docs/architecture/wiki.m
 - **Trigger**: 30 days after V1 launch, the wiki shows no measurable accretion (page count or knowledge density per deal stays flat or declines).
   **Measurement**: PostHog dashboard on `wiki.page_viewed`, `wiki.query_asked`, page count per workspace.
   **Response**: revisit maintainer prompts, ingest cadence, and `AGENTS.md` schema; the LLM-wiki pattern is supposed to compound.
-- **Trigger**: wiki maintainer produces hallucinated content not traceable to a `SourceRecord`/`Capture`/`Transcript`.
-  **Measurement**: `wiki-lint` skill flags pages with claims lacking citation; sampled human review.
-  **Response**: tighten maintainer prompt; require citation per claim.
+- **Trigger**: wiki maintainer produces pages that summarize `SourceRecord`s but omit a human-clickable `https://` link to the original listing (or capture replay URL) when that URL is known.
+  **Measurement**: `wiki-lint` rule `original-source-url-missing` + golden fixtures in `packages/wiki/tests/`.
+  **Response**: tighten `AGENTS.md` schema and ingest prompt; auto-fix inserts a Sources block with the canonical URL.
 - **Trigger**: searcher feedback rate (`wiki.feedback_given` per `wiki.query_asked`) drops below 10%.
   **Measurement**: PostHog ratio.
   **Response**: revisit query UX or answer quality; the wiki is not earning trust.
