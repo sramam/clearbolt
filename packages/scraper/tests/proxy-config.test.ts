@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
+import { unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   canEscalateHostToResidential,
   clearProxyHostEscalations,
@@ -17,24 +17,35 @@ import {
   pickProxyEndpointFromList,
 } from "../src/proxy-endpoints-file.js";
 
+function unsetEnv(...keys: string[]): void {
+  for (const key of keys) delete process.env[key];
+}
+
 describe("proxy-config", () => {
-  const env = process.env;
+  const envSnapshot = { ...process.env };
 
   beforeEach(() => {
     clearProxyEndpointsFileCache();
-    delete process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE;
-    delete process.env.CLEARBOLT_PROXY_USERNAME_STYLE;
-    delete process.env.CLEARBOLT_PROXY_SESSION_DURATION_MINUTES;
-    delete process.env.CLEARBOLT_PROXY_SESSION_ID;
-    delete process.env.CLEARBOLT_PROXY_COUNTRY;
-    delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
-    delete process.env.CLEARBOLT_PROXY_DATACENTER;
-    delete process.env.CLEARBOLT_PROXY_POLICY;
+    unsetEnv(
+      "CLEARBOLT_PROXY_ENDPOINTS_FILE",
+      "CLEARBOLT_PROXY_USERNAME_STYLE",
+      "CLEARBOLT_PROXY_SESSION_DURATION_MINUTES",
+      "CLEARBOLT_PROXY_SESSION_ID",
+      "CLEARBOLT_PROXY_COUNTRY",
+      "CLEARBOLT_PROXY_RESIDENTIAL",
+      "CLEARBOLT_PROXY_DATACENTER",
+      "CLEARBOLT_PROXY_POLICY",
+    );
     clearProxyHostEscalations();
   });
 
   afterEach(() => {
-    process.env = env;
+    for (const key of Object.keys(process.env)) {
+      if (!(key in envSnapshot)) delete process.env[key];
+    }
+    for (const [key, value] of Object.entries(envSnapshot)) {
+      process.env[key] = value;
+    }
     clearProxyHostEscalations();
   });
 
@@ -51,23 +62,21 @@ describe("proxy-config", () => {
   it("datacenter-first escalates host to residential", () => {
     process.env.CLEARBOLT_PROXY_POLICY = "datacenter-first";
     process.env.CLEARBOLT_PROXY_DATACENTER = "http://u:p@dc.example:8080";
-    process.env.CLEARBOLT_PROXY_RESIDENTIAL =
-      "http://u:p@res.example:8080";
+    process.env.CLEARBOLT_PROXY_RESIDENTIAL = "http://u:p@res.example:8080";
     expect(proxyTierForHost("bizbuysell.com")).toBe("datacenter");
     markHostUseResidential("bizbuysell.com");
     expect(proxyTierForHost("bizbuysell.com")).toBe("residential");
   });
 
   it("defaults policy to direct", () => {
-    delete process.env.CLEARBOLT_PROXY_POLICY;
+    unsetEnv("CLEARBOLT_PROXY_POLICY");
     expect(readProxyPolicy()).toBe("direct");
   });
 
   it("direct-then-residential starts direct and escalates on mark", () => {
     process.env.CLEARBOLT_PROXY_POLICY = "direct-then-residential";
-    process.env.CLEARBOLT_PROXY_RESIDENTIAL =
-      "http://u:p@res.example:8080";
-    delete process.env.CLEARBOLT_PROXY_DATACENTER;
+    process.env.CLEARBOLT_PROXY_RESIDENTIAL = "http://u:p@res.example:8080";
+    unsetEnv("CLEARBOLT_PROXY_DATACENTER");
     expect(proxyTierForHost("bizbuysell.com")).toBe("direct");
     markHostUseResidential("bizbuysell.com");
     expect(proxyTierForHost("bizbuysell.com")).toBe("residential");

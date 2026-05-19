@@ -32,9 +32,7 @@ describe("sendClearboltVerificationOtp", () => {
       otp: "123456",
       type: "sign-in",
     });
-    expect(log).toHaveBeenCalledWith(
-      expect.stringContaining("123456"),
-    );
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("123456"));
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -56,9 +54,9 @@ describe("sendClearboltVerificationOtp", () => {
         }),
       }),
     );
-    const body = JSON.parse(
-      /** @type {RequestInit} */ (vi.mocked(fetch).mock.calls[0]?.[1]).body,
-    );
+    const init = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(init?.body).toBeDefined();
+    const body = JSON.parse(String(init?.body));
     expect(body.html).toContain("<!DOCTYPE html>");
     expect(body.text).toContain("654321");
   });

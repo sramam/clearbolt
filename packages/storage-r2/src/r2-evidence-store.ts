@@ -169,4 +169,9 @@ export class R2EvidenceStore implements EvidenceStore {
       bucket: this.bucket,
     };
   }
+
+  /** Release HTTP connections (call from tests and long-lived workers). */
+  disconnect(): void {
+    this.client.destroy();
+  }
 }

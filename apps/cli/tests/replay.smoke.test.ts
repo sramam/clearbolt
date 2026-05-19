@@ -34,6 +34,8 @@ describe("replay smoke", () => {
     process.env.CLEARBOLT_SCRAPE_LIMIT = "10";
     delete process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE;
     delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
+    delete process.env.CLEARBOLT_PROXY_POLICY;
+    process.env.CLEARBOLT_PROXY_POLICY = "direct";
     process.env.CLEARBOLT_BIZBUYSELL_INGEST_HTTP = "0";
     try {
       await runCli(["node", "cli", "scrape", fixtureSearch, "--fixtures"]);

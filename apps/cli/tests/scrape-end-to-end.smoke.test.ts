@@ -33,9 +33,16 @@ async function tmpDataDir(): Promise<string> {
 }
 
 function clearProxyEnvForSmoke(): void {
-  delete process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE;
-  delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
-  delete process.env.CLEARBOLT_PROXY_DATACENTER;
+  for (const key of [
+    "CLEARBOLT_PROXY_ENDPOINTS_FILE",
+    "CLEARBOLT_PROXY_RESIDENTIAL",
+    "CLEARBOLT_PROXY_DATACENTER",
+    "CLEARBOLT_PROXY_SESSION_ID",
+    "CLEARBOLT_PROXY_POLICY",
+  ]) {
+    delete process.env[key];
+  }
+  process.env.CLEARBOLT_PROXY_POLICY = "direct";
   process.env.CLEARBOLT_BIZBUYSELL_INGEST_HTTP = "0";
 }
 

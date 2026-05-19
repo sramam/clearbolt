@@ -13,6 +13,7 @@ export default defineConfig({
   test: {
     globals: false,
     environment: "node",
+    teardownTimeout: 15_000,
     include: [
       "packages/**/*.test.ts",
       "apps/**/*.test.ts",
