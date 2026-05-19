@@ -15,7 +15,9 @@ export type BrokerSiteCrawlStateFile = {
   pagesFetchedTotal?: number;
 };
 
-export function isBrokerSiteCrawlComplete(file: BrokerSiteCrawlStateFile): boolean {
+export function isBrokerSiteCrawlComplete(
+  file: BrokerSiteCrawlStateFile,
+): boolean {
   return file.complete !== false;
 }
 

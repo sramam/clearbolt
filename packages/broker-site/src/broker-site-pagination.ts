@@ -1,10 +1,10 @@
 import {
+  type PaginationStrategy,
   linkSelectorNextStrategy,
   normalizePageUrl,
   paginationNavNextStrategy,
   queryPageStrategy,
   relNextStrategy,
-  type PaginationStrategy,
 } from "@clearbolt/scraper";
 import * as cheerio from "cheerio";
 
@@ -31,7 +31,11 @@ const queryPagedStrategy: PaginationStrategy = {
         /* skip */
       }
     });
-    if (!found && !html.includes(`paged=${next}`) && !html.includes(`page=${next}`)) {
+    if (
+      !found &&
+      !html.includes(`paged=${next}`) &&
+      !html.includes(`page=${next}`)
+    ) {
       return null;
     }
     const u = new URL(base);

@@ -1,9 +1,18 @@
 import type { BrokerDirectoryRef } from "@clearbolt/scraper";
 import { writeBrokerRefsFile } from "@clearbolt/scraper";
-import { fetchAzDreBrokerRefs, type AzDreSearchParams } from "./adapters/state-dre-az.js";
-import { fetchCaDreBrokerRefs, type CaDreSearchParams } from "./adapters/state-dre-ca.js";
-import { fetchFlDreBrokerRefs, type FlDreSearchParams } from "./adapters/state-dre-fl.js";
 import { fetchIbbaBrokerRefs } from "./adapters/ibba.js";
+import {
+  type AzDreSearchParams,
+  fetchAzDreBrokerRefs,
+} from "./adapters/state-dre-az.js";
+import {
+  type CaDreSearchParams,
+  fetchCaDreBrokerRefs,
+} from "./adapters/state-dre-ca.js";
+import {
+  type FlDreSearchParams,
+  fetchFlDreBrokerRefs,
+} from "./adapters/state-dre-fl.js";
 import { fetchSunbeltBrokerRefs } from "./adapters/sunbelt.js";
 import { fetchTransworldBrokerRefs } from "./adapters/transworld.js";
 import { defaultBrokerRefsPathForAdapter } from "./broker-refs-path.js";
@@ -58,7 +67,11 @@ function defaultSlug(
     if (st) return `us-${st}`;
     return "all";
   }
-  if (adapter === "state-dre-ca" || adapter === "state-dre-fl" || adapter === "state-dre-az") {
+  if (
+    adapter === "state-dre-ca" ||
+    adapter === "state-dre-fl" ||
+    adapter === "state-dre-az"
+  ) {
     const city = options.city ?? options.caDre?.cityState ?? "search";
     return slugify(city);
   }
@@ -66,11 +79,13 @@ function defaultSlug(
 }
 
 function slugify(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "search";
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "search"
+  );
 }
 
 export async function runBrokerDirectoryDiscovery(
@@ -101,7 +116,11 @@ export async function runBrokerDirectoryDiscovery(
     case "state-dre-ca": {
       const cityState = options.city ?? options.caDre?.cityState;
       const licenseeName = options.caDre?.licenseeName;
-      if (!cityState?.trim() && !licenseeName?.trim() && !options.caDre?.licenseId) {
+      if (
+        !cityState?.trim() &&
+        !licenseeName?.trim() &&
+        !options.caDre?.licenseId
+      ) {
         throw new Error(
           "CA DRE discovery requires --city (mailing city) or --license-name",
         );
@@ -132,7 +151,9 @@ export async function runBrokerDirectoryDiscovery(
       }
       break;
     default:
-      throw new Error(`Unsupported adapter: ${options.adapter satisfies never}`);
+      throw new Error(
+        `Unsupported adapter: ${options.adapter satisfies never}`,
+      );
   }
 
   options.onProgress?.(`Writing ${refs.length} broker ref(s) → ${outputPath}`);

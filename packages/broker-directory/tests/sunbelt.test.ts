@@ -15,6 +15,8 @@ describe("sunbelt adapter", () => {
     const refs = discoverSunbeltBrokerRefsFromHtml(html);
     expect(refs).toHaveLength(2);
     expect(refs[0]?.websiteDomain).toBe("sunbeltnetwork.com");
-    expect(refs.some((r) => r.externalBrokerId === "bakersfield-ca")).toBe(true);
+    expect(refs.some((r) => r.externalBrokerId === "bakersfield-ca")).toBe(
+      true,
+    );
   });
 });

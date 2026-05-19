@@ -2,11 +2,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { defaultBrokerSiteCrawlStatePath } from "../src/broker-site-crawl-path.js";
 import {
   readBrokerSiteCrawlState,
   writeBrokerSiteCrawlState,
 } from "../src/broker-site-crawl-state.js";
-import { defaultBrokerSiteCrawlStatePath } from "../src/broker-site-crawl-path.js";
 
 describe("broker-site crawl state", () => {
   it("round-trips pagination checkpoint", async () => {
@@ -30,7 +30,9 @@ describe("broker-site crawl state", () => {
       });
       const loaded = await readBrokerSiteCrawlState(path);
       expect(loaded.listingUrls).toHaveLength(1);
-      expect(loaded.indexPagination[0]?.lastPaginationStrategy).toBe("query-page");
+      expect(loaded.indexPagination[0]?.lastPaginationStrategy).toBe(
+        "query-page",
+      );
       expect(loaded.indexPagination[0]?.pagesFetched).toBe(2);
     } finally {
       await rm(dir, { recursive: true, force: true });

@@ -27,7 +27,9 @@ export function discoverFlDreBrokerRefsFromResultsHtml(
       .toArray()
       .map((td) => $(td).text().replace(/\s+/g, " ").trim());
     if (cells.length < 3) return;
-    const licenseCell = cells.find((c) => /^[A-Z]{2}\d{5,}/.test(c) || /^\d{5,}/.test(c));
+    const licenseCell = cells.find(
+      (c) => /^[A-Z]{2}\d{5,}/.test(c) || /^\d{5,}/.test(c),
+    );
     if (!licenseCell) return;
     const name = cells[0];
     if (!name || /name|license|search/i.test(name)) return;

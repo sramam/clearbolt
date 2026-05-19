@@ -3,7 +3,8 @@ import { mergeBrokerDirectoryRef } from "@clearbolt/scraper";
 import * as cheerio from "cheerio";
 import { websiteDomainFromUrl } from "../website-domain.js";
 
-export const SUNBELT_LOCATIONS_URL = "https://www.sunbeltnetwork.com/locations/";
+export const SUNBELT_LOCATIONS_URL =
+  "https://www.sunbeltnetwork.com/locations/";
 
 /** Franchise office pages: /city-st/ or linked from locations index. */
 const SUNBELT_OFFICE_PATH = /^\/[a-z0-9][a-z0-9-]*\/$/i;
@@ -27,7 +28,7 @@ export function isSunbeltOfficeUrl(url: string): boolean {
     }
     const seg = u.pathname.split("/").filter(Boolean);
     if (seg.length !== 1) return false;
-    if (SUNBELT_SKIP_SEGMENTS.has(seg[0]!.toLowerCase())) return false;
+    if (SUNBELT_SKIP_SEGMENTS.has(seg[0]?.toLowerCase())) return false;
     return SUNBELT_OFFICE_PATH.test(u.pathname);
   } catch {
     return false;
@@ -89,7 +90,10 @@ export async function fetchSunbeltBrokerRefs(options?: {
         );
       }
       const body = await res.text();
-      if (body.includes("cf-error-details") || body.includes("you have been blocked")) {
+      if (
+        body.includes("cf-error-details") ||
+        body.includes("you have been blocked")
+      ) {
         throw new Error(
           "Sunbelt returned Cloudflare block page — use Playwright/browser fetcher (--headed) or run from residential IP",
         );

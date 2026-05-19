@@ -3,7 +3,8 @@ import { mergeBrokerDirectoryRef } from "@clearbolt/scraper";
 import { slugifySegment, websiteDomainFromUrl } from "../website-domain.js";
 
 export const IBBA_BROKERS_ALL_URL = "https://www.ibba.org/wp-json/brokers/all";
-export const IBBA_BROKERS_SEARCH_URL = "https://www.ibba.org/wp-json/brokers/search";
+export const IBBA_BROKERS_SEARCH_URL =
+  "https://www.ibba.org/wp-json/brokers/search";
 export const IBBA_BROKERS_US_STATE_URL =
   "https://www.ibba.org/wp-json/brokers/usstatebrokers";
 
@@ -48,9 +49,7 @@ export function ibbaProfileUrlFromRecord(record: IbbaBrokerRecord): string {
   if (record.permalink?.trim()) return record.permalink.trim();
   const stateSeg = slugifySegment(record.state ?? record.state_code ?? "us");
   const citySeg = slugifySegment(record.city ?? "unknown");
-  const nameSeg = slugifySegment(
-    `${record.first_name} ${record.last_name}`,
-  );
+  const nameSeg = slugifySegment(`${record.first_name} ${record.last_name}`);
   return `https://www.ibba.org/broker-profile/${stateSeg}/${citySeg}/${nameSeg}/`;
 }
 
@@ -116,7 +115,9 @@ export function parseIbbaSearchPostsJson(json: unknown): BrokerDirectoryRef[] {
   return [...merged.values()];
 }
 
-export function parseIbbaUsStateBrokersGeoJson(json: unknown): BrokerDirectoryRef[] {
+export function parseIbbaUsStateBrokersGeoJson(
+  json: unknown,
+): BrokerDirectoryRef[] {
   const features = (json as { features?: unknown[] })?.features;
   if (!Array.isArray(features)) {
     throw new Error("IBBA usstatebrokers response missing features");
@@ -151,7 +152,11 @@ export function normalizeIbbaCountryCode(
 ): string | undefined {
   if (!input?.trim()) return undefined;
   const v = input.trim().toUpperCase();
-  if (v === "USA" || v === "UNITED STATES" || v === "UNITED STATES OF AMERICA") {
+  if (
+    v === "USA" ||
+    v === "UNITED STATES" ||
+    v === "UNITED STATES OF AMERICA"
+  ) {
     return "US";
   }
   if (v === "CANADA" || v === "CAN") return "CA";
@@ -166,7 +171,8 @@ export function filterIbbaBrokerRefs(
 ): BrokerDirectoryRef[] {
   let out = refs;
   if (options.countryCode) {
-    const cc = normalizeIbbaCountryCode(options.countryCode)!;
+    const cc = normalizeIbbaCountryCode(options.countryCode);
+    if (!cc) return [];
     out = out.filter((r) => (r.country ?? "").toUpperCase() === cc);
   }
   if (options.stateCode) {
@@ -191,7 +197,10 @@ export async function fetchIbbaBrokerRefs(
     options.fetchJson ??
     (async (url: string) => {
       const res = await fetch(url, {
-        headers: { "User-Agent": "Clearbolt/1.0 (broker-directory; +https://clearbolt.dev)" },
+        headers: {
+          "User-Agent":
+            "Clearbolt/1.0 (broker-directory; +https://clearbolt.dev)",
+        },
       });
       if (!res.ok) {
         throw new Error(`IBBA fetch failed ${res.status}: ${url}`);

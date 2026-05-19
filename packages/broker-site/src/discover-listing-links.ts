@@ -17,7 +17,8 @@ export type BrokerSiteListingLink = {
 function listingSlugFromPath(pathname: string): string | undefined {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 0) return undefined;
-  const last = segments[segments.length - 1]!;
+  const last = segments[segments.length - 1];
+  if (!last) return undefined;
   if (/^\d{4,}$/.test(last)) return last;
   if (last.length >= 8 && /^[a-z0-9-]+$/i.test(last)) return last;
   return segments.slice(-2).join("-") || last;
@@ -53,9 +54,10 @@ export function discoverListingLinksFromPage(
     const path = new URL(abs).pathname;
     if (SKIP_PATH_RE.test(path)) return;
     if (path === base.pathname || path === `${base.pathname}/`) return;
-    if (!LISTING_PATH_RE.test(path) && !LISTING_PATH_RE.test($(el).text())) return;
+    if (!LISTING_PATH_RE.test(path) && !LISTING_PATH_RE.test($(el).text()))
+      return;
 
-    const key = abs.split("#")[0]!;
+    const key = abs.split("#")[0] ?? abs;
     if (seen.has(key)) return;
     seen.add(key);
 

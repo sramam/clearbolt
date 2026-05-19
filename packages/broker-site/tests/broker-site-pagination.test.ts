@@ -32,7 +32,7 @@ describe("discoverNextBrokerSiteIndexPageUrl", () => {
   });
 
   it("returns null when no next page", () => {
-    const html = `<html><body><p>Only page</p></body></html>`;
+    const html = "<html><body><p>Only page</p></body></html>";
     const result = discoverNextBrokerSiteIndexPageUrl(
       html,
       "https://broker.example.com/listings",

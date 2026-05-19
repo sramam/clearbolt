@@ -1,8 +1,8 @@
-import { z } from "zod";
 import { resolveFreeDedupOpenRouterModel } from "@clearbolt/dedup";
+import { z } from "zod";
 import {
-  BrokerSiteListingExtractSchema,
   type BrokerSiteListingExtract,
+  BrokerSiteListingExtractSchema,
 } from "./parse-broker-site-listing.js";
 
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -36,7 +36,10 @@ function extractJsonObject(text: string): unknown {
   } catch {
     const m = t.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("no JSON object in LLM response");
-    return JSON.parse(m[0]!);
+    const jsonRaw = m[0];
+    if (jsonRaw === undefined)
+      throw new Error("no JSON object in LLM response");
+    return JSON.parse(jsonRaw);
   }
 }
 

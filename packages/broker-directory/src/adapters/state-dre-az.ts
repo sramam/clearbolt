@@ -16,10 +16,7 @@ export type AzDreSearchParams = {
 
 export function extractAzRequestVerificationToken(html: string): string | null {
   const $ = cheerio.load(html);
-  return (
-    $('input[name="__RequestVerificationToken"]').attr("value") ??
-    null
-  );
+  return $('input[name="__RequestVerificationToken"]').attr("value") ?? null;
 }
 
 export function discoverAzDreBrokerRefsFromResultsHtml(

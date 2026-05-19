@@ -16,7 +16,9 @@ export const BrokerSiteListingExtractSchema = z.object({
   brokerName: z.string().optional(),
 });
 
-export type BrokerSiteListingExtract = z.infer<typeof BrokerSiteListingExtractSchema>;
+export type BrokerSiteListingExtract = z.infer<
+  typeof BrokerSiteListingExtractSchema
+>;
 
 function parseMoney(text: string): number | undefined {
   const m = text.replace(/,/g, "").match(/\$?\s*([\d.]+)\s*([mk])?/i);
@@ -72,20 +74,25 @@ export function parseBrokerSiteListingPage(
   if (cf) extract.cashFlow = parseMoney(cf[0]);
 
   const loc =
-    $("[class*='location'], .location, [itemprop='address']").first().text().trim() ||
-    bodyText.match(/location[:\s]*([A-Za-z0-9 ,.-]{3,60})/i)?.[1];
+    $("[class*='location'], .location, [itemprop='address']")
+      .first()
+      .text()
+      .trim() || bodyText.match(/location[:\s]*([A-Za-z0-9 ,.-]{3,60})/i)?.[1];
   if (loc) Object.assign(extract, parseStateLocation(loc));
 
   extract.industry =
-    $("[class*='industry'], .industry, [itemprop='industry']").first().text().trim() ||
-    undefined;
-
-  const desc =
-    $("article p, .description, [class*='description'], [itemprop='description']")
+    $("[class*='industry'], .industry, [itemprop='industry']")
       .first()
       .text()
-      .replace(/\s+/g, " ")
-      .trim();
+      .trim() || undefined;
+
+  const desc = $(
+    "article p, .description, [class*='description'], [itemprop='description']",
+  )
+    .first()
+    .text()
+    .replace(/\s+/g, " ")
+    .trim();
   if (desc.length > 40) extract.description = desc.slice(0, 4000);
 
   extract.brokerName =

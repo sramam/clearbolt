@@ -11,7 +11,9 @@ export type CaDreSearchParams = {
   licenseId?: string;
 };
 
-export function buildCaDreSearchBody(params: CaDreSearchParams): URLSearchParams {
+export function buildCaDreSearchBody(
+  params: CaDreSearchParams,
+): URLSearchParams {
   return new URLSearchParams({
     h_nextstep: "SEARCH",
     LICENSEE_NAME: params.licenseeName ?? "",
@@ -33,7 +35,10 @@ export function discoverCaDreBrokerRefsFromResultsHtml(
     const profileUrl = new URL(href, CA_DRE_PPL_SEARCH_URL).toString();
     const name = $(el).text().trim();
     const row = $(el).closest("tr");
-    const cells = row.find("td").toArray().map((td) => $(td).text().trim());
+    const cells = row
+      .find("td")
+      .toArray()
+      .map((td) => $(td).text().trim());
     const licenseId = cells.find((c) => /^\d{8}$/.test(c));
     mergeBrokerDirectoryRef(merged, {
       profileUrl,
@@ -41,7 +46,10 @@ export function discoverCaDreBrokerRefsFromResultsHtml(
       name: name || undefined,
       firm: cells[1],
       state: "CA",
-      city: cells.find((c) => /,/.test(c))?.split(",")[0]?.trim(),
+      city: cells
+        .find((c) => /,/.test(c))
+        ?.split(",")[0]
+        ?.trim(),
       sourceAdapter: "state-dre-ca",
     });
   });
@@ -51,7 +59,9 @@ export function discoverCaDreBrokerRefsFromResultsHtml(
 
 export async function fetchCaDreBrokerRefs(
   params: CaDreSearchParams,
-  options?: { fetchText?: (url: string, init?: RequestInit) => Promise<string> },
+  options?: {
+    fetchText?: (url: string, init?: RequestInit) => Promise<string>;
+  },
 ): Promise<BrokerDirectoryRef[]> {
   const fetchText =
     options?.fetchText ??
@@ -59,7 +69,8 @@ export async function fetchCaDreBrokerRefs(
       const res = await fetch(url, {
         ...init,
         headers: {
-          "User-Agent": "Clearbolt/1.0 (broker-directory; +https://clearbolt.dev)",
+          "User-Agent":
+            "Clearbolt/1.0 (broker-directory; +https://clearbolt.dev)",
           ...(init?.headers as Record<string, string> | undefined),
         },
       });

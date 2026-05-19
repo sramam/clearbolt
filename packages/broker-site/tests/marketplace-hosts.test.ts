@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isMarketplaceHost, isMarketplaceUrl } from "../src/marketplace-hosts.js";
+import {
+  isMarketplaceHost,
+  isMarketplaceUrl,
+} from "../src/marketplace-hosts.js";
 
 describe("marketplace hosts", () => {
   it("blocks bizbuysell", () => {
@@ -9,8 +12,8 @@ describe("marketplace hosts", () => {
 
   it("allows independent broker domains", () => {
     expect(isMarketplaceHost("www.acmebusinessbrokers.com")).toBe(false);
-    expect(isMarketplaceUrl("https://www.acmebusinessbrokers.com/listings/1")).toBe(
-      false,
-    );
+    expect(
+      isMarketplaceUrl("https://www.acmebusinessbrokers.com/listings/1"),
+    ).toBe(false);
   });
 });

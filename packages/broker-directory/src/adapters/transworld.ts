@@ -6,8 +6,7 @@ export const TRANSWORLD_LOCATIONS_SITEMAP_URL =
   "https://www.tworld.com/sitemap/locations.xml";
 
 /** Office root: /locations/{state}/{city} — not nested marketing paths. */
-const TRANSWORLD_OFFICE_PATH =
-  /^\/locations\/[a-z0-9-]+\/[a-z0-9-]+\/?$/i;
+const TRANSWORLD_OFFICE_PATH = /^\/locations\/[a-z0-9-]+\/[a-z0-9-]+\/?$/i;
 
 export function isTransworldOfficeLocationUrl(url: string): boolean {
   try {
@@ -22,15 +21,18 @@ export function isTransworldOfficeLocationUrl(url: string): boolean {
 export function parseTransworldLocationUrlsFromSitemap(xml: string): string[] {
   const urls: string[] = [];
   const re = /<loc>([^<]+)<\/loc>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(xml)) !== null) {
-    const loc = m[1]!.trim();
-    if (isTransworldOfficeLocationUrl(loc)) urls.push(loc);
+  let m: RegExpExecArray | null = re.exec(xml);
+  while (m !== null) {
+    const loc = m[1]?.trim();
+    if (loc && isTransworldOfficeLocationUrl(loc)) urls.push(loc);
+    m = re.exec(xml);
   }
   return [...new Set(urls)];
 }
 
-export function transworldOfficeUrlToRef(officeUrl: string): BrokerDirectoryRef {
+export function transworldOfficeUrlToRef(
+  officeUrl: string,
+): BrokerDirectoryRef {
   const u = new URL(officeUrl);
   const segments = u.pathname.split("/").filter(Boolean);
   const state = segments[1];
@@ -65,10 +67,15 @@ export async function fetchTransworldBrokerRefs(options?: {
     options?.fetchText ??
     (async (url: string) => {
       const res = await fetch(url, {
-        headers: { "User-Agent": "Clearbolt/1.0 (broker-directory; +https://clearbolt.dev)" },
+        headers: {
+          "User-Agent":
+            "Clearbolt/1.0 (broker-directory; +https://clearbolt.dev)",
+        },
       });
       if (!res.ok) {
-        throw new Error(`Transworld sitemap fetch failed ${res.status}: ${url}`);
+        throw new Error(
+          `Transworld sitemap fetch failed ${res.status}: ${url}`,
+        );
       }
       return res.text();
     });

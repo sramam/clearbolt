@@ -1,43 +1,50 @@
 import type { SourceRecord } from "@clearbolt/core";
 import type { IngestSourceResult } from "@clearbolt/dedup";
 import { BrokerSiteDedupKeyer, ingestSourceRecord } from "@clearbolt/dedup";
-import type { EvidenceStore, MetadataStore, ProcessedArtifactStore } from "@clearbolt/storage";
 import {
+  type Fetcher,
   HttpFetcher,
+  type ListingIngestStateStore,
   buildSourceRecord,
   fetchHtmlWithHttpWafPolicy,
   htmlListingBodyFingerprint,
   htmlListingBodyText,
   persistListingProcessedArtifacts,
   throttleHost,
-  type Fetcher,
-  type ListingIngestStateStore,
 } from "@clearbolt/scraper";
-import { isBrokerSiteCrawlAllowed, brokerSiteAllowlistFromEnv } from "./allowlist.js";
+import type {
+  EvidenceStore,
+  MetadataStore,
+  ProcessedArtifactStore,
+} from "@clearbolt/storage";
 import {
+  brokerSiteAllowlistFromEnv,
+  isBrokerSiteCrawlAllowed,
+} from "./allowlist.js";
+import { defaultBrokerSiteCrawlStatePath } from "./broker-site-crawl-path.js";
+import {
+  type BrokerSiteCrawlStateFile,
   readBrokerSiteCrawlState,
   writeBrokerSiteCrawlState,
-  type BrokerSiteCrawlStateFile,
 } from "./broker-site-crawl-state.js";
-import { defaultBrokerSiteCrawlStatePath } from "./broker-site-crawl-path.js";
-import { discoverListingIndexUrls } from "./discover-listings-index.js";
 import {
+  brokerSiteLlmExtractEnabled,
+  extractListingsFromIndexViaLlm,
+} from "./broker-site-llm-extract.js";
+import {
+  type BrokerSiteListingLink,
   discoverListingLinksFromPage,
   externalIdFromBrokerSiteUrl,
-  type BrokerSiteListingLink,
 } from "./discover-listing-links.js";
+import { discoverListingIndexUrls } from "./discover-listings-index.js";
 import { isMarketplaceHost, isMarketplaceUrl } from "./marketplace-hosts.js";
 import {
   parseBrokerSiteListingPage,
   toParsedListingFields,
 } from "./parse-broker-site-listing.js";
 import {
-  brokerSiteLlmExtractEnabled,
-  extractListingsFromIndexViaLlm,
-} from "./broker-site-llm-extract.js";
-import {
-  walkBrokerSiteIndexPages,
   type BrokerSiteIndexPaginationState,
+  walkBrokerSiteIndexPages,
 } from "./walk-broker-site-index.js";
 
 export const BROKER_SITE_ADAPTER_ID = "broker-site";
@@ -117,7 +124,8 @@ export async function runBrokerSiteCrawl(
   }
 
   const fetcher =
-    options.fetcher ?? new HttpFetcher({ sessionKey: process.env.CLEARBOLT_PROXY_SESSION ?? "" });
+    options.fetcher ??
+    new HttpFetcher({ sessionKey: process.env.CLEARBOLT_PROXY_SESSION ?? "" });
   const wafPolicy = {
     persistNeedsBrowser: async () => {},
     hostRequiresBrowser: async () => false,
@@ -134,11 +142,13 @@ export async function runBrokerSiteCrawl(
     (Number.parseInt(
       process.env.CLEARBOLT_BROKER_SITE_MAX_INDEX_PAGES ?? "0",
       10,
-    ) || 0);
+    ) ||
+      0);
 
   const dataRoot = options.dataRootDir ?? process.env.DATA_DIR ?? "data";
   const crawlStatePath =
-    options.crawlStatePath ?? defaultBrokerSiteCrawlStatePath(siteUrl, dataRoot);
+    options.crawlStatePath ??
+    defaultBrokerSiteCrawlStatePath(siteUrl, dataRoot);
 
   let priorState: BrokerSiteCrawlStateFile | undefined;
   if (options.resume !== false) {
@@ -193,7 +203,10 @@ export async function runBrokerSiteCrawl(
     indexUrls = [home.finalUrl];
   }
 
-  const discoverLinks = (html: string, pageUrl: string): BrokerSiteListingLink[] => {
+  const discoverLinks = (
+    html: string,
+    pageUrl: string,
+  ): BrokerSiteListingLink[] => {
     if (brokerSiteLlmExtractEnabled()) {
       return [];
     }
@@ -220,7 +233,11 @@ export async function runBrokerSiteCrawl(
         await throttleHost(new URL(url).hostname, 500);
         let body: string;
         let finalUrl: string;
-        if (url === home.finalUrl && ctx.pageIndex === 0 && !initialPagination) {
+        if (
+          url === home.finalUrl &&
+          ctx.pageIndex === 0 &&
+          !initialPagination
+        ) {
           body = home.body;
           finalUrl = home.finalUrl;
         } else {
@@ -234,9 +251,13 @@ export async function runBrokerSiteCrawl(
 
         if (brokerSiteLlmExtractEnabled()) {
           const plain = htmlListingBodyText(body);
-          const llmLinks = await extractListingsFromIndexViaLlm(plain, finalUrl, {
-            siteUrl,
-          });
+          const llmLinks = await extractListingsFromIndexViaLlm(
+            plain,
+            finalUrl,
+            {
+              siteUrl,
+            },
+          );
           mergeLinkMap(linkMap, llmLinks, maxLinks);
         } else {
           mergeLinkMap(linkMap, discoverLinks(body, finalUrl), maxLinks);
@@ -266,7 +287,9 @@ export async function runBrokerSiteCrawl(
   const discoveryComplete = indexPagination.every((s) => s.complete);
   await checkpoint({
     listingUrls,
-    complete: discoveryComplete && (options.discoverOnly || (options.ingestLimit ?? 0) === 0),
+    complete:
+      discoveryComplete &&
+      (options.discoverOnly || (options.ingestLimit ?? 0) === 0),
   });
 
   if (options.discoverOnly || (options.ingestLimit ?? 0) === 0) {
@@ -289,7 +312,11 @@ export async function runBrokerSiteCrawl(
   for (const listingUrl of toIngest) {
     options.onProgress?.({ phase: "ingest", message: `Listing ${listingUrl}` });
     await throttleHost(new URL(listingUrl).hostname, 800);
-    const res = await fetchHtmlWithHttpWafPolicy(fetcher, listingUrl, wafPolicy);
+    const res = await fetchHtmlWithHttpWafPolicy(
+      fetcher,
+      listingUrl,
+      wafPolicy,
+    );
     const parsed = parseBrokerSiteListingPage(res.body, res.finalUrl);
     const externalId = externalIdFromBrokerSiteUrl(res.finalUrl);
 

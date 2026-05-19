@@ -1,9 +1,9 @@
+import {
+  type BrokerSitePaginationResult,
+  discoverNextBrokerSiteIndexPageUrl,
+} from "./broker-site-pagination.js";
 import type { BrokerSiteListingLink } from "./discover-listing-links.js";
 import { isMarketplaceUrl } from "./marketplace-hosts.js";
-import {
-  discoverNextBrokerSiteIndexPageUrl,
-  type BrokerSitePaginationResult,
-} from "./broker-site-pagination.js";
 
 export type BrokerSiteIndexPaginationState = {
   indexUrl: string;
@@ -18,14 +18,19 @@ export type BrokerSiteIndexPaginationState = {
 export type WalkBrokerSiteIndexOptions = {
   indexUrl: string;
   maxPages: number;
-  fetchPage: (url: string, ctx: { pageIndex: number }) => Promise<{
+  fetchPage: (
+    url: string,
+    ctx: { pageIndex: number },
+  ) => Promise<{
     body: string;
     finalUrl: string;
   }>;
   discoverLinks: (html: string, pageUrl: string) => BrokerSiteListingLink[];
   initialPagination?: BrokerSiteIndexPaginationState;
   onProgress?: (msg: string) => void;
-  onPageComplete?: (state: BrokerSiteIndexPaginationState) => void | Promise<void>;
+  onPageComplete?: (
+    state: BrokerSiteIndexPaginationState,
+  ) => void | Promise<void>;
 };
 
 export type WalkBrokerSiteIndexResult = {

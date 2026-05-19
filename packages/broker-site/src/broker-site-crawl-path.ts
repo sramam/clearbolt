@@ -7,7 +7,9 @@ export function sitePathSlugFromUrl(siteUrl: string): string {
     const host = registrableDomain(u.hostname);
     const path = u.pathname.replace(/^\/+|\/+$/g, "") || "index";
     const slug =
-      path === "index" || path === "" ? host : `${host}__${path.replace(/\//g, "__")}`;
+      path === "index" || path === ""
+        ? host
+        : `${host}__${path.replace(/\//g, "__")}`;
     return slug.replace(/[^a-zA-Z0-9._-]+/g, "_");
   } catch {
     return "site";
