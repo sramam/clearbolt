@@ -1,0 +1,24 @@
+{
+  "name": "@clearbolt/scraper-service",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --watch dist/server.js",
+    "predev": "tsc -p tsconfig.json",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@clearbolt/cli": "workspace:*",
+    "@clearbolt/scraper": "workspace:*",
+    "@clearbolt/storage": "workspace:*",
+    "@clearbolt/storage-neon": "workspace:*",
+    "@clearbolt/storage-r2": "workspace:*",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.17",
+    "typescript": "^5.7.3"
+  }
+}
