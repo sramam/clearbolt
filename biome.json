@@ -12,6 +12,13 @@
   },
   "organizeImports": { "enabled": true },
   "files": {
-    "ignore": ["node_modules", "dist", ".data-test", "data", ".next"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      ".data-test",
+      "data",
+      ".next",
+      "packages/db/src/generated"
+    ]
   }
 }
