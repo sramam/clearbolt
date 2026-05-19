@@ -86,7 +86,9 @@ export class R2ProcessedArtifactStore implements ProcessedArtifactStore {
         ContentType: meta.contentType,
         Metadata: {
           "derived-from": meta.derivedFromSha256,
-          ...(meta.parserVersion ? { "parser-version": meta.parserVersion } : {}),
+          ...(meta.parserVersion
+            ? { "parser-version": meta.parserVersion }
+            : {}),
         },
       }),
     );

@@ -64,10 +64,7 @@ export function prepareSearchQuery(rawInput: string): PreparedSearchQuery {
     };
   }
 
-  const tokens = raw
-    .split(/\s+/)
-    .map(normalizeToken)
-    .filter(Boolean);
+  const tokens = raw.split(/\s+/).map(normalizeToken).filter(Boolean);
 
   const corrected: string[] = [];
   const ftsParts: string[] = [];

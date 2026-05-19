@@ -1,7 +1,7 @@
 import type { CanonicalDeal, SourceRecord } from "@clearbolt/core";
+import type { PrismaClient } from "@clearbolt/db";
 import type { PreparedSearchQuery } from "@clearbolt/search";
 import type { Pool } from "pg";
-import { PrismaClient } from "@clearbolt/db";
 
 type PrismaDelegate = InstanceType<typeof PrismaClient>;
 
@@ -148,12 +148,11 @@ async function searchDealSearchIndexInner(
   fts: string,
   trgm: string,
 ): Promise<DealSearchHit[]> {
-
   const adapter =
     options.adapter?.trim() && options.adapter.trim() !== "all"
       ? options.adapter.trim()
       : null;
-  const adapterFilter = adapter ? `AND $3::text = ANY(adapters)` : "";
+  const adapterFilter = adapter ? "AND $3::text = ANY(adapters)" : "";
   const trgmThreshold = options.trgmThreshold ?? 0.25;
 
   if (fts) {
@@ -185,7 +184,7 @@ async function searchDealSearchIndexInner(
   const params: (string | number)[] = [trgm, trgmThreshold, limit];
   let adapterClause = "";
   if (adapter) {
-    adapterClause = `AND $4::text = ANY(adapters)`;
+    adapterClause = "AND $4::text = ANY(adapters)";
     params.push(adapter);
   }
   const { rows } = await pool.query<{
@@ -241,7 +240,7 @@ export async function searchDealSearchIndexOr(
       options.adapter?.trim() && options.adapter.trim() !== "all"
         ? options.adapter.trim()
         : null;
-    const adapterFilter = adapter ? `AND $3::text = ANY(adapters)` : "";
+    const adapterFilter = adapter ? "AND $3::text = ANY(adapters)" : "";
     const params: string[] = [fts, String(limit)];
     if (adapter) params.push(adapter);
     const { rows } = await pool.query<{

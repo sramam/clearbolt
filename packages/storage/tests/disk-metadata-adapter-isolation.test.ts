@@ -16,11 +16,7 @@ async function tmpRoot(): Promise<string> {
   return tmp;
 }
 
-function source(
-  id: string,
-  adapter: string,
-  externalId: string,
-): SourceRecord {
+function source(id: string, adapter: string, externalId: string): SourceRecord {
   return {
     id,
     adapter,
@@ -75,7 +71,10 @@ describe("DiskMetadataStore adapter isolation", () => {
       await readFile(join(tmp, "index", "bizbuysell", "dedup.json"), "utf8"),
     ) as Record<string, string>;
     const bbDedup = JSON.parse(
-      await readFile(join(tmp, "index", "businessbroker", "dedup.json"), "utf8"),
+      await readFile(
+        join(tmp, "index", "businessbroker", "dedup.json"),
+        "utf8",
+      ),
     ) as Record<string, string>;
 
     expect(Object.values(bbsDedup)).toEqual([dealBbs.id]);
@@ -108,7 +107,10 @@ describe("DiskMetadataStore adapter isolation", () => {
       readFile(join(tmp, "deals", "bizbuysell", `${dealBbs.id}.json`), "utf8"),
     ).resolves.toBeTruthy();
     await expect(
-      readFile(join(tmp, "deals", "businessbroker", `${dealBb.id}.json`), "utf8"),
+      readFile(
+        join(tmp, "deals", "businessbroker", `${dealBb.id}.json`),
+        "utf8",
+      ),
     ).resolves.toBeTruthy();
 
     await rm(tmp, { recursive: true, force: true });

@@ -1,4 +1,7 @@
-export { prepareSearchQuery, type PreparedSearchQuery } from "./query-prepare.js";
+export {
+  prepareSearchQuery,
+  type PreparedSearchQuery,
+} from "./query-prepare.js";
 export {
   expandSearchQueryWithLlm,
   mergeRelaxedFtsQuery,

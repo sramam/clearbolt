@@ -36,7 +36,7 @@ export async function expandSearchQueryWithLlm(
         {
           role: "system",
           content:
-            "You help ETA searchers find SMB acquisition listings. Reply with JSON only: {\"synonyms\": string[], \"note\": string}. Synonyms are 3-8 alternate search terms or phrases (single words preferred) related to the user query for business-for-sale search. Do not repeat the original words verbatim.",
+            'You help ETA searchers find SMB acquisition listings. Reply with JSON only: {"synonyms": string[], "note": string}. Synonyms are 3-8 alternate search terms or phrases (single words preferred) related to the user query for business-for-sale search. Do not repeat the original words verbatim.',
         },
         {
           role: "user",

@@ -4,22 +4,22 @@ import type {
   DomainProfile,
   SourceRecord,
 } from "@clearbolt/core";
+import { normalizePgDatabaseUrl } from "@clearbolt/db";
+import type { DatabaseConfig as NeonMetadataStoreConfig } from "@clearbolt/db";
+import { PrismaClient } from "@clearbolt/db";
 import {
   type MetadataStore,
   type WorkspacePipelineStore,
   dedupKeyHash,
   hostFileName,
 } from "@clearbolt/storage";
-import { createWorkspacePipelineStore } from "./workspace-pipeline.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import { normalizePgDatabaseUrl } from "@clearbolt/db";
-import type { DatabaseConfig as NeonMetadataStoreConfig } from "@clearbolt/db";
-import { PrismaClient } from "@clearbolt/db";
 import {
   reindexAllDealSearch,
   upsertDealSearchIndex,
 } from "./deal-search-index.js";
+import { createWorkspacePipelineStore } from "./workspace-pipeline.js";
 
 function toJson<T>(value: T): object {
   return JSON.parse(JSON.stringify(value)) as object;
@@ -32,7 +32,9 @@ function isDealSearchIndexUnavailable(err: unknown): boolean {
 
 type PrismaDelegate = InstanceType<typeof PrismaClient>;
 
-export class NeonMetadataStore implements MetadataStore, WorkspacePipelineStore {
+export class NeonMetadataStore
+  implements MetadataStore, WorkspacePipelineStore
+{
   private readonly prisma: PrismaDelegate;
   private readonly pool: Pool;
   private readonly pipeline: WorkspacePipelineStore;

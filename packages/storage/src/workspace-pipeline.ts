@@ -24,9 +24,7 @@ export interface WorkspacePipelineStore {
     ownerUserId: string,
   ): Promise<UserMarketQuery[]>;
 
-  putUserProjectDisposition(
-    disposition: UserProjectDisposition,
-  ): Promise<void>;
+  putUserProjectDisposition(disposition: UserProjectDisposition): Promise<void>;
   getUserProjectDisposition(
     userId: string,
     projectId: string,

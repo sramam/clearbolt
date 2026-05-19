@@ -7,8 +7,8 @@ import type {
   WorkspaceProject,
   WorkspaceProjectStatus,
 } from "@clearbolt/core";
-import type { WorkspacePipelineStore } from "@clearbolt/storage";
 import type { PrismaClient } from "@clearbolt/db";
+import type { WorkspacePipelineStore } from "@clearbolt/storage";
 
 function toJson<T>(value: T): object {
   return JSON.parse(JSON.stringify(value)) as object;

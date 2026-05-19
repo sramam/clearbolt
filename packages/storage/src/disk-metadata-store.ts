@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type {
   CanonicalDeal,
@@ -6,8 +6,8 @@ import type {
   DomainProfile,
   SourceRecord,
 } from "@clearbolt/core";
-import type { MetadataStore } from "./contracts.js";
 import { dedupKeyAdapter } from "./adapter-partition.js";
+import type { MetadataStore } from "./contracts.js";
 import { dedupKeyHash, hostFileName } from "./dedup-index.js";
 
 export class DiskMetadataStore implements MetadataStore {
@@ -94,7 +94,10 @@ export class DiskMetadataStore implements MetadataStore {
       }
     }
     try {
-      const raw = await readFile(join(this.sourcesRoot(), `${id}.json`), "utf8");
+      const raw = await readFile(
+        join(this.sourcesRoot(), `${id}.json`),
+        "utf8",
+      );
       return JSON.parse(raw) as SourceRecord;
     } catch {
       return null;
