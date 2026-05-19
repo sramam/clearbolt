@@ -1,13 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
-import { clearProxyEndpointsFileCache } from "../src/proxy-endpoints-file.js";
+import { unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   resolveBrowserFallbackWorkerCount,
   resolveListingIngestConcurrency,
 } from "../src/bizbuysell-run-policy.js";
+import { clearProxyEndpointsFileCache } from "../src/proxy-endpoints-file.js";
 
 function writeProxyFile(lineCount: number): string {
   const path = join(
@@ -26,11 +26,11 @@ describe("resolveListingIngestConcurrency", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     clearProxyEndpointsFileCache();
-    delete process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE;
-    delete process.env.CLEARBOLT_PROXY_POLICY;
-    delete process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST;
-    delete process.env.CLEARBOLT_BIZBUYSELL_INGEST_HTTP;
-    delete process.env.CLEARBOLT_SCRAPE_CONCURRENCY;
+    process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE = undefined;
+    process.env.CLEARBOLT_PROXY_POLICY = undefined;
+    process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST = undefined;
+    process.env.CLEARBOLT_BIZBUYSELL_INGEST_HTTP = undefined;
+    process.env.CLEARBOLT_SCRAPE_CONCURRENCY = undefined;
   });
 
   it("caps HTTP workers when many proxy ports are configured", () => {
@@ -88,7 +88,7 @@ describe("resolveListingIngestConcurrency", () => {
   });
 
   it("browser fallback pool is capped below HTTP worker count", () => {
-    delete process.env.CLEARBOLT_BROWSER_FALLBACK_WORKERS;
+    process.env.CLEARBOLT_BROWSER_FALLBACK_WORKERS = undefined;
     expect(resolveBrowserFallbackWorkerCount(50)).toBe(4);
     expect(resolveBrowserFallbackWorkerCount(2)).toBe(2);
     process.env.CLEARBOLT_BROWSER_FALLBACK_WORKERS = "6";

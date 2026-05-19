@@ -49,11 +49,10 @@ export function proxyEscalationEnabled(): boolean {
 }
 
 export function residentialProxyConfigured(): boolean {
-  if (envTrim("CLEARBOLT_PROXY_ENDPOINTS_FILE")) {
+  const endpointsFile = envTrim("CLEARBOLT_PROXY_ENDPOINTS_FILE");
+  if (endpointsFile) {
     try {
-      return loadProxyEndpointsFromFile(
-        envTrim("CLEARBOLT_PROXY_ENDPOINTS_FILE")!,
-      ).length > 0;
+      return loadProxyEndpointsFromFile(endpointsFile).length > 0;
     } catch {
       return false;
     }
@@ -124,12 +123,8 @@ function parseProxyUrl(raw: string, tier: ProxyTier): ProxyEndpoint | null {
         ? "http:"
         : u.protocol;
     const server = `${protocol}//${u.hostname}${u.port ? `:${u.port}` : ""}`;
-    const username = u.username
-      ? decodeURIComponent(u.username)
-      : undefined;
-    const password = u.password
-      ? decodeURIComponent(u.password)
-      : undefined;
+    const username = u.username ? decodeURIComponent(u.username) : undefined;
+    const password = u.password ? decodeURIComponent(u.password) : undefined;
     return { tier, server, username, password };
   } catch {
     return null;
@@ -190,7 +185,8 @@ export function resolveProxyEndpoint(
 
 export function initialProxyTierForHost(_host: string): ProxyTier {
   const policy = readProxyPolicy();
-  if (policy === "direct" || policy === "direct-then-residential") return "direct";
+  if (policy === "direct" || policy === "direct-then-residential")
+    return "direct";
   if (policy === "residential") return "residential";
   if (policy === "datacenter") return "datacenter";
   if (policy === "datacenter-first" && envTrim("CLEARBOLT_PROXY_DATACENTER")) {
@@ -217,10 +213,7 @@ export function shouldUseResidentialForHost(host: string): boolean {
   return hostResidential.has(host.toLowerCase());
 }
 
-export function proxyTierForHost(
-  host: string,
-  sessionKey?: string,
-): ProxyTier {
+export function proxyTierForHost(host: string, sessionKey?: string): ProxyTier {
   if (shouldUseResidentialForHost(host)) {
     if (resolveProxyEndpoint("residential", sessionKey)) return "residential";
   }
@@ -250,9 +243,7 @@ export function proxyDispatcherUrl(
 export function playwrightProxyOptions(
   tier: ProxyTier,
   sessionKey?: string,
-):
-  | { server: string; username?: string; password?: string }
-  | undefined {
+): { server: string; username?: string; password?: string } | undefined {
   const ep = resolveProxyEndpoint(tier, sessionKey);
   if (!ep) return undefined;
   return {

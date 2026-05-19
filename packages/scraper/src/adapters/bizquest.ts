@@ -2,16 +2,16 @@ import type { ListingRef, ParsedListingFields } from "@clearbolt/core";
 import * as cheerio from "cheerio";
 import { listingRefFromBizQuestUrl } from "../bizquest-listing-url.js";
 import {
+  type BizQuestSavedSearchParams,
   buildBizQuestSearchPageUrl,
   parseBizQuestSearchPageNumber,
   parseBizQuestSearchUrl,
-  type BizQuestSavedSearchParams,
 } from "../bizquest-search-url.js";
-import {
-  parseBizQuestListingPage,
-  type BizQuestListingExtract,
-} from "./bizquest-listing-parse.js";
 import { buildSourceRecord } from "./bizbuysell.js";
+import {
+  type BizQuestListingExtract,
+  parseBizQuestListingPage,
+} from "./bizquest-listing-parse.js";
 
 export const BIZQUEST_ADAPTER_ID = "bizquest";
 

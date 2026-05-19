@@ -1,10 +1,10 @@
 import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
+import { normalizeDealStreamBrokerProfileUrl } from "../dealstream-broker-url.js";
 import {
   extractDealStreamListingIdFromPathname,
   isDealStreamListingUrl,
 } from "../dealstream-listing-url.js";
-import { normalizeDealStreamBrokerProfileUrl } from "../dealstream-broker-url.js";
 
 export type DealStreamListingExtract = {
   title?: string;
@@ -41,18 +41,17 @@ function labelValue(text: string, label: string): string | undefined {
   return val && val.length > 0 ? val : undefined;
 }
 
-function parseLocationLine(line: string | undefined): Pick<
-  DealStreamListingExtract,
-  "city" | "state" | "location"
-> {
+function parseLocationLine(
+  line: string | undefined,
+): Pick<DealStreamListingExtract, "city" | "state" | "location"> {
   if (!line) return {};
   const cleaned = line.replace(/\s+/g, " ").trim();
   if (!cleaned) return {};
   const comma = cleaned.match(/^(.+?),\s*([A-Z]{2})$/);
   if (comma) {
     return {
-      city: comma[1]!.trim(),
-      state: comma[2]!.trim(),
+      city: comma[1]?.trim(),
+      state: comma[2]?.trim(),
       location: cleaned,
     };
   }
@@ -62,7 +61,10 @@ function parseLocationLine(line: string | undefined): Pick<
   return { location: cleaned };
 }
 
-function extractFinancials($: CheerioAPI, into: DealStreamListingExtract): void {
+function extractFinancials(
+  $: CheerioAPI,
+  into: DealStreamListingExtract,
+): void {
   const bodyText = $("body").text().replace(/\s+/g, " ");
   into.askingPrice =
     parseMoney(labelValue(bodyText, "Asking Price")) ?? into.askingPrice;
@@ -85,7 +87,11 @@ function extractFinancials($: CheerioAPI, into: DealStreamListingExtract): void 
   });
 }
 
-function extractBroker($: CheerioAPI, base: URL, into: DealStreamListingExtract): void {
+function extractBroker(
+  $: CheerioAPI,
+  base: URL,
+  into: DealStreamListingExtract,
+): void {
   $("a[href]").each((_, el) => {
     const href = $(el).attr("href");
     if (!href) return;
@@ -151,7 +157,11 @@ export function parseDealStreamListingPage(
   if (description) {
     extract.description = description.slice(0, 50_000);
   } else {
-    const fallback = $("main, article").first().text().replace(/\s+/g, " ").trim();
+    const fallback = $("main, article")
+      .first()
+      .text()
+      .replace(/\s+/g, " ")
+      .trim();
     if (fallback) extract.description = fallback.slice(0, 50_000);
   }
 

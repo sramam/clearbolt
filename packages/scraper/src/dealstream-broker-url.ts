@@ -14,7 +14,9 @@ export function isDealStreamBrokerProfileUrl(url: string): boolean {
   }
 }
 
-export function normalizeDealStreamBrokerProfileUrl(url: string): string | null {
+export function normalizeDealStreamBrokerProfileUrl(
+  url: string,
+): string | null {
   if (!isDealStreamBrokerProfileUrl(url)) return null;
   const u = new URL(url);
   u.hash = "";
@@ -22,6 +24,8 @@ export function normalizeDealStreamBrokerProfileUrl(url: string): string | null 
   return u.toString();
 }
 
-export function extractListingIdFromDealStreamUrl(url: string): string | undefined {
+export function extractListingIdFromDealStreamUrl(
+  url: string,
+): string | undefined {
   return listingRefFromDealStreamUrl(url)?.externalId;
 }

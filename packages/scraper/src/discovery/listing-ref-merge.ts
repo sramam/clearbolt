@@ -38,7 +38,8 @@ export function countListingRefsNewOnPage(
   for (const ref of pageRefs) {
     const scratch = new Map<string, ListingRef>();
     mergeRef(scratch, ref);
-    const key = [...scratch.keys()][0]!;
+    const key = scratch.keys().next().value;
+    if (key === undefined) continue;
     if (merged.has(key) || seed?.has(key)) {
       seenOnPage++;
     } else {
@@ -53,7 +54,10 @@ export type MergeListingRef = (
   ref: ListingRef,
 ) => void;
 
-function preferListingRef(existing: ListingRef, incoming: ListingRef): ListingRef {
+function preferListingRef(
+  existing: ListingRef,
+  incoming: ListingRef,
+): ListingRef {
   const externalId = incoming.externalId ?? existing.externalId;
   const incomingWww = incoming.url.includes("www.bizbuysell.com");
   const existingWww = existing.url.includes("www.bizbuysell.com");
@@ -96,7 +100,10 @@ export function mergeListingRefByExternalId(
 export function mergeListingRefsIntoMap(
   into: Map<string, ListingRef>,
   refs: Iterable<ListingRef>,
-  merge: (into: Map<string, ListingRef>, ref: ListingRef) => void = mergeListingRefByExternalId,
+  merge: (
+    into: Map<string, ListingRef>,
+    ref: ListingRef,
+  ) => void = mergeListingRefByExternalId,
 ): void {
   for (const ref of refs) {
     merge(into, ref);

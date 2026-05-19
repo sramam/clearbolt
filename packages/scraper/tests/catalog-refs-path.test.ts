@@ -18,9 +18,7 @@ describe("catalog refs path", () => {
       defaultCatalogRefsPath(
         "https://www.bizbuysell.com/california-businesses-for-sale/",
       ),
-    ).toContain(
-      "catalog-refs/bizbuysell/california-businesses-for-sale.json",
-    );
+    ).toContain("catalog-refs/bizbuysell/california-businesses-for-sale.json");
   });
 
   it("does not collide across adapters for the same regional path", () => {
@@ -31,8 +29,12 @@ describe("catalog refs path", () => {
       "https://dealstream.com/california-businesses-for-sale",
     );
     expect(bbs).not.toBe(ds);
-    expect(bbs).toContain("catalog-refs/bizbuysell/california-businesses-for-sale.json");
-    expect(ds).toContain("catalog-refs/dealstream/california-businesses-for-sale.json");
+    expect(bbs).toContain(
+      "catalog-refs/bizbuysell/california-businesses-for-sale.json",
+    );
+    expect(ds).toContain(
+      "catalog-refs/dealstream/california-businesses-for-sale.json",
+    );
   });
 
   it("lists legacy paths as fallback readers", () => {

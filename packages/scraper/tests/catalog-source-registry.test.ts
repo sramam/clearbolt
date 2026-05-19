@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { BIZBUYSELL_CALIFORNIA_CATALOG_URL } from "../src/adapters/bizbuysell/catalog.js";
+import { DEALSTREAM_CALIFORNIA_CATALOG_URL } from "../src/adapters/dealstream/catalog.js";
 import {
   CATALOG_SOURCES,
   catalogSourceForUrl,
@@ -6,8 +8,6 @@ import {
   isCatalogSourceId,
   resolveCatalogUrl,
 } from "../src/catalog-source-registry.js";
-import { BIZBUYSELL_CALIFORNIA_CATALOG_URL } from "../src/adapters/bizbuysell/catalog.js";
-import { DEALSTREAM_CALIFORNIA_CATALOG_URL } from "../src/adapters/dealstream/catalog.js";
 
 describe("catalog source registry", () => {
   it("lists all pre-V1 catalog crawlers", () => {
@@ -33,7 +33,7 @@ describe("catalog source registry", () => {
     expect(bbs.id).toBe("bizbuysell");
     expect(bbs.ingestSupported).toBe(true);
     const loop = catalogSourceForUrl(
-      CATALOG_SOURCES.find((s) => s.id === "loopnet")!.defaultCatalogUrl,
+      CATALOG_SOURCES.find((s) => s.id === "loopnet")?.defaultCatalogUrl,
     );
     expect(loop.ingestSupported).toBe(false);
     expect(loop.browserRequired).toBe(true);

@@ -22,9 +22,9 @@ describe("dealstream catalog", () => {
     expect(isDealStreamCatalogUrl(DEALSTREAM_CALIFORNIA_CATALOG_URL)).toBe(
       true,
     );
-    expect(
-      isDealStreamCatalogUrl("https://dealstream.com/biz-sale/167"),
-    ).toBe(true);
+    expect(isDealStreamCatalogUrl("https://dealstream.com/biz-sale/167")).toBe(
+      true,
+    );
     expect(
       isDealStreamCatalogUrl("https://dealstream.com/d/biz-sale/hvac/9m25ky"),
     ).toBe(false);

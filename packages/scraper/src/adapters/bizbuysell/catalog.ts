@@ -1,25 +1,23 @@
 import type { ListingRef } from "@clearbolt/core";
 import {
-  discoverListingRefsFromJsonLd,
-} from "../../discovery/json-ld-item-list.js";
-import {
-  discoverNextPageUrl,
-  linkSelectorNextStrategy,
-  normalizePageUrl,
-  pathIncrementStrategy,
-  paginationNavNextStrategy,
-  queryPageStrategy,
-  relNextStrategy,
-  type PaginationStrategy,
-} from "../../discovery/pagination/index.js";
-import type { CatalogAdapter } from "../types.js";
-import {
   isBizBuySellCatalogUrl,
   listingRefFromBizBuySellUrl,
 } from "../../bizbuysell-listing-url.js";
+import { discoverListingRefsFromJsonLd } from "../../discovery/json-ld-item-list.js";
 import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
-import { discoverListingRefs } from "../bizbuysell.js";
+import {
+  type PaginationStrategy,
+  discoverNextPageUrl,
+  linkSelectorNextStrategy,
+  normalizePageUrl,
+  paginationNavNextStrategy,
+  pathIncrementStrategy,
+  queryPageStrategy,
+  relNextStrategy,
+} from "../../discovery/pagination/index.js";
 import { rewriteBizBuySellToDesktopUrl } from "../bizbuysell-mobile.js";
+import { discoverListingRefs } from "../bizbuysell.js";
+import type { CatalogAdapter } from "../types.js";
 
 export { isBizBuySellCatalogUrl };
 
@@ -42,8 +40,11 @@ export function catalogSlugFromPathname(pathname: string): string | null {
 export function catalogPageNumberFromPathname(pathname: string): number {
   const m = pathname.match(PAGE_IN_PATH);
   if (m) {
-    const n = Number.parseInt(m[1]!, 10);
-    if (!Number.isNaN(n)) return n;
+    const pageRaw = m[1];
+    if (pageRaw !== undefined) {
+      const n = Number.parseInt(pageRaw, 10);
+      if (!Number.isNaN(n)) return n;
+    }
   }
   if (/-businesses-for-sale\/?$/i.test(pathname)) return 1;
   return 1;
@@ -82,7 +83,9 @@ const bizBuySellPathPagination = pathIncrementStrategy({
   pageFromLinkPathname: (pathname) => {
     const m = pathname.match(PAGE_IN_PATH);
     if (!m) return null;
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) return null;
+    const n = Number.parseInt(pageRaw, 10);
     return Number.isNaN(n) ? null : n;
   },
   buildPageUrl: buildCatalogPageUrl,
@@ -113,7 +116,9 @@ export function maxCatalogPageNumberInHtml(
   const re = new RegExp(`${escaped}/(\\d+)/`, "gi");
   let max = 0;
   for (const m of html.matchAll(re)) {
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) continue;
+    const n = Number.parseInt(pageRaw, 10);
     if (!Number.isNaN(n) && n > max) max = n;
   }
   return max;
@@ -135,9 +140,7 @@ export function normalizeCatalogUrlForCompare(url: string): string {
   const slug = catalogSlugFromPathname(base.pathname);
   if (!slug) return normalizePageUrl(url);
   const queryPage = base.searchParams.get("page");
-  const pageFromQuery = queryPage
-    ? Number.parseInt(queryPage, 10)
-    : Number.NaN;
+  const pageFromQuery = queryPage ? Number.parseInt(queryPage, 10) : Number.NaN;
   const page = !Number.isNaN(pageFromQuery)
     ? pageFromQuery
     : catalogPageNumberFromPathname(base.pathname);

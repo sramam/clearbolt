@@ -1,15 +1,12 @@
 import type { RawResponse } from "@clearbolt/core";
-import {
-  type CrawlGateOptions,
-  beforeCrawlFetch,
-} from "./crawl-gate.js";
+import { type CrawlGateOptions, beforeCrawlFetch } from "./crawl-gate.js";
 import { planHttpLaneAfterWafResponse } from "./crawl-policy.js";
 import type { Fetcher } from "./fetcher.js";
+import { isTransientNetworkError } from "./network-errors.js";
 import {
   canEscalateHostToResidential,
   markHostUseResidential,
 } from "./proxy-config.js";
-import { isTransientNetworkError } from "./network-errors.js";
 import { throttleHost } from "./throttle.js";
 import { classifyWaf } from "./waf-detector.js";
 import {
@@ -211,15 +208,11 @@ export async function fetchHtmlWithHttpWafPolicy(
     }
     await options.persistNeedsBrowser(host);
     if (options.browserFetcher && !isHardAkamaiDenial(res.body)) {
-      return fetchHtmlWithBrowserPrimaryWafPolicy(
-        options.browserFetcher,
-        url,
-        {
-          ...options,
-          browserLanePrimary: true,
-          browserFetcher: undefined,
-        },
-      );
+      return fetchHtmlWithBrowserPrimaryWafPolicy(options.browserFetcher, url, {
+        ...options,
+        browserLanePrimary: true,
+        browserFetcher: undefined,
+      });
     }
     throw new Error(
       `WAF ${waf} on HTTP lane for ${url} (attempt ${attempt}); needsBrowser=true stored for ${host}`,

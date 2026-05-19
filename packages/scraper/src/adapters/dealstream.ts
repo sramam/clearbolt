@@ -1,17 +1,17 @@
 import type { ListingRef, ParsedListingFields } from "@clearbolt/core";
 import * as cheerio from "cheerio";
+import { listingRefFromDealStreamUrl } from "../dealstream-listing-url.js";
 import {
-  fetchHtmlWithHttpWafPolicy,
   type FetchHtmlWithHttpWafPolicyOptions,
+  fetchHtmlWithHttpWafPolicy,
 } from "../fetch-with-waf-policy.js";
 import type { Fetcher } from "../fetcher.js";
-import { listingRefFromDealStreamUrl } from "../dealstream-listing-url.js";
+import { buildSourceRecord } from "./bizbuysell.js";
 import { enrichListingExtract } from "./dealstream-listing-enrich.js";
 import {
   parseDealStreamListingPage,
   toParsedListingFields,
 } from "./dealstream-listing-parse.js";
-import { buildSourceRecord } from "./bizbuysell.js";
 
 export const DEALSTREAM_ADAPTER_ID = "dealstream";
 

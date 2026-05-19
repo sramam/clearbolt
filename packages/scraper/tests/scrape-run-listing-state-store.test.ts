@@ -3,12 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  readListingIndex,
+  readScrapeMeta,
+  scrapeMetaPath,
+} from "../src/scrape-paths.js";
+import {
   beginListingScrapeRun,
   completeListingScrapeRun,
   countListingIndexesOnScrape,
 } from "../src/scrape-run-context.js";
 import { ScrapeRunListingStateStore } from "../src/scrape-run-listing-state-store.js";
-import { readListingIndex, scrapeMetaPath, readScrapeMeta } from "../src/scrape-paths.js";
 
 const CATALOG = "https://www.bizbuysell.com/california-businesses-for-sale/";
 

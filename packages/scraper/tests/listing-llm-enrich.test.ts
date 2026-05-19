@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { BizBuySellListingExtract } from "../src/adapters/bizbuysell-listing-parse.js";
 import {
   listingHasLlmEnrichGaps,
   mergeListingLlmPatch,
 } from "../src/adapters/bizbuysell-listing-llm-enrich.js";
+import type { BizBuySellListingExtract } from "../src/adapters/bizbuysell-listing-parse.js";
 import { ListingLlmEnrichPatchSchema } from "../src/listing-llm-enrich-schema.js";
 
 function baseExtract(): BizBuySellListingExtract {

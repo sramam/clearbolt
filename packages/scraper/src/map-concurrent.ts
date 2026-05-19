@@ -13,7 +13,9 @@ export async function mapConcurrent<T, R>(
     for (;;) {
       const i = next++;
       if (i >= items.length) return;
-      results[i] = await fn(items[i]!, i, workerIndex);
+      const item = items[i];
+      if (item === undefined) continue;
+      results[i] = await fn(item, i, workerIndex);
     }
   }
 

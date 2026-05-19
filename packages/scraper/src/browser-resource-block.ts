@@ -56,7 +56,10 @@ export function browserImageBlockingEnabled(): boolean {
   if (process.env.CLEARBOLT_BROWSER_BLOCK_IMAGES?.trim() === "0") {
     return false;
   }
-  return process.env.CLEARBOLT_BROWSER_BLOCK_IMAGES?.trim() === "1" || browserResourceBlockingEnabled();
+  return (
+    process.env.CLEARBOLT_BROWSER_BLOCK_IMAGES?.trim() === "1" ||
+    browserResourceBlockingEnabled()
+  );
 }
 
 /** Prefer Playwright's Chromium over system Chrome when proxied (extensions → gstatic/GTM). */
@@ -130,18 +133,16 @@ export function shouldBlockBrowserRequest(
   return true;
 }
 
-export async function installBrowserResourceBlocking(
-  context: {
-    route: (
-      pattern: string,
-      handler: (route: {
-        request: () => { url: () => string; resourceType: () => string };
-        abort: () => Promise<void>;
-        continue: () => Promise<void>;
-      }) => void | Promise<void>,
-    ) => Promise<unknown>;
-  },
-): Promise<void> {
+export async function installBrowserResourceBlocking(context: {
+  route: (
+    pattern: string,
+    handler: (route: {
+      request: () => { url: () => string; resourceType: () => string };
+      abort: () => Promise<void>;
+      continue: () => Promise<void>;
+    }) => void | Promise<void>,
+  ) => Promise<unknown>;
+}): Promise<void> {
   if (!browserResourceBlockingEnabled()) return;
 
   await context.route("**/*", async (route) => {

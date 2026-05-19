@@ -2,8 +2,14 @@ import { access, copyFile, mkdir, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { ListingRef } from "@clearbolt/core";
 import { catalogAdapterFromUrl } from "./catalog-adapter-from-url.js";
-import type { CatalogIngestOverallCounts, CatalogScrapeRunResult } from "./run-catalog-scrape.js";
+import type {
+  CatalogIngestOverallCounts,
+  CatalogScrapeRunResult,
+} from "./run-catalog-scrape.js";
 import {
+  type ListingIndex,
+  type ScrapeLane,
+  type ScrapeRun,
   allocateNextRunId,
   createInitialScrapeMeta,
   cumulativeFromListingIndexes,
@@ -17,9 +23,6 @@ import {
   scrapeRunPath,
   writeScrapeMeta,
   writeScrapeRun,
-  type ListingIndex,
-  type ScrapeLane,
-  type ScrapeRun,
 } from "./scrape-paths.js";
 
 export type ScrapeRunContext = {
@@ -57,7 +60,10 @@ export async function beginListingScrapeRun(input: {
   runKind: string;
   discovered?: number;
 }): Promise<ScrapeRunContext> {
-  const base = listingScrapeContextFromCatalogUrl(input.dataRoot, input.catalogUrl);
+  const base = listingScrapeContextFromCatalogUrl(
+    input.dataRoot,
+    input.catalogUrl,
+  );
   const metaPath = scrapeMetaPath(
     base.dataRoot,
     base.lane,
@@ -113,7 +119,10 @@ export async function countListingIndexesOnScrape(
     skipped_fresh: 0,
     total: 0,
   };
-  const listingsDir = join(scrapeBaseDir(dataRoot, lane, domain, scrapeId), "listings");
+  const listingsDir = join(
+    scrapeBaseDir(dataRoot, lane, domain, scrapeId),
+    "listings",
+  );
   let entries: string[];
   try {
     entries = await readdir(listingsDir);
@@ -123,7 +132,9 @@ export async function countListingIndexesOnScrape(
     throw err;
   }
   for (const entry of entries) {
-    const index = await readListingIndex(join(listingsDir, entry, "index.json"));
+    const index = await readListingIndex(
+      join(listingsDir, entry, "index.json"),
+    );
     if (!index) continue;
     counts.total++;
     if (index.status === "ingested") counts.ingested++;
@@ -142,7 +153,10 @@ export async function listFailedListingRefsFromScrape(
     dataRoot,
     catalogUrl,
   );
-  const listingsDir = join(scrapeBaseDir(dataRoot, lane, domain, scrapeId), "listings");
+  const listingsDir = join(
+    scrapeBaseDir(dataRoot, lane, domain, scrapeId),
+    "listings",
+  );
   const refs: ListingRef[] = [];
   let entries: string[];
   try {
@@ -153,7 +167,9 @@ export async function listFailedListingRefsFromScrape(
     throw err;
   }
   for (const entry of entries) {
-    const index = await readListingIndex(join(listingsDir, entry, "index.json"));
+    const index = await readListingIndex(
+      join(listingsDir, entry, "index.json"),
+    );
     if (!index || index.status !== "failed") continue;
     refs.push({ url: index.url, externalId: index.listingId });
   }
@@ -177,9 +193,11 @@ export async function completeListingScrapeRun(
   const discovered =
     result.listingsDiscovered > 0
       ? result.listingsDiscovered
-      : (await readScrapeMeta(
-          scrapeMetaPath(ctx.dataRoot, ctx.lane, ctx.domain, ctx.scrapeId),
-        ))?.cumulative.discovered ?? indexes.length;
+      : ((
+          await readScrapeMeta(
+            scrapeMetaPath(ctx.dataRoot, ctx.lane, ctx.domain, ctx.scrapeId),
+          )
+        )?.cumulative.discovered ?? indexes.length);
 
   const cumulative = cumulativeFromListingIndexes(
     indexes,
@@ -256,7 +274,9 @@ export async function completeListingScrapeRun(
   };
 }
 
-async function loadAllListingIndexes(ctx: ScrapeRunContext): Promise<ListingIndex[]> {
+async function loadAllListingIndexes(
+  ctx: ScrapeRunContext,
+): Promise<ListingIndex[]> {
   const listingsDir = join(
     scrapeBaseDir(ctx.dataRoot, ctx.lane, ctx.domain, ctx.scrapeId),
     "listings",
@@ -269,7 +289,9 @@ async function loadAllListingIndexes(ctx: ScrapeRunContext): Promise<ListingInde
     return out;
   }
   for (const entry of entries) {
-    const index = await readListingIndex(join(listingsDir, entry, "index.json"));
+    const index = await readListingIndex(
+      join(listingsDir, entry, "index.json"),
+    );
     if (index) out.push(index);
   }
   return out;

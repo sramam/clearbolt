@@ -31,14 +31,17 @@ function parseMoney(raw: string | undefined): number | undefined {
 function parseLocationParts(
   locations: string[],
 ): Pick<BusinessBrokerListingExtract, "city" | "state" | "location"> {
-  const cleaned = locations.map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const cleaned = locations
+    .map((s) => s.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
   if (cleaned.length === 0) return {};
-  const primary = cleaned[0]!;
+  const primary = cleaned[0];
+  if (!primary) return {};
   const comma = primary.match(/^(.+?),\s*([A-Z]{2})$/);
   if (comma) {
     return {
-      city: comma[1]!.trim(),
-      state: comma[2]!.trim(),
+      city: comma[1]?.trim(),
+      state: comma[2]?.trim(),
       location: cleaned.join("; "),
     };
   }
@@ -72,14 +75,11 @@ function extractQuickFacts(
   into: BusinessBrokerListingExtract,
 ): void {
   const block =
-    $(".busListingQuickFacts").text() ||
-    $(".pbd_left").text() ||
-    "";
+    $(".busListingQuickFacts").text() || $(".pbd_left").text() || "";
   const text = block.replace(/\s+/g, " ").trim();
   if (!text) return;
 
-  into.askingPrice =
-    readLabeledMoney(text, "Asking Price") ?? into.askingPrice;
+  into.askingPrice = readLabeledMoney(text, "Asking Price") ?? into.askingPrice;
   into.revenue = readLabeledMoney(text, "Annual Revenue") ?? into.revenue;
   into.cashFlow = readLabeledMoney(text, "Cash Flow") ?? into.cashFlow;
 
@@ -91,7 +91,10 @@ function extractQuickFacts(
   }
 }
 
-function extractBroker($: CheerioAPI, into: BusinessBrokerListingExtract): void {
+function extractBroker(
+  $: CheerioAPI,
+  into: BusinessBrokerListingExtract,
+): void {
   $(".contact_seller_content li").each((_, el) => {
     const line = $(el).text().replace(/\s+/g, " ").trim();
     const contact = line.match(/^Contact:\s*(.+)$/i);
@@ -101,12 +104,17 @@ function extractBroker($: CheerioAPI, into: BusinessBrokerListingExtract): void 
   });
 }
 
-function extractIndustry($: CheerioAPI, into: BusinessBrokerListingExtract): void {
+function extractIndustry(
+  $: CheerioAPI,
+  into: BusinessBrokerListingExtract,
+): void {
   const crumbs = $("#breadcrumbs a, ol#breadcrumbs a")
     .map((_, el) => $(el).text().trim())
     .get()
     .filter((t) => t && !/^home$/i.test(t));
-  const industry = crumbs.find((t) => /businesses for sale|business for sale/i.test(t));
+  const industry = crumbs.find((t) =>
+    /businesses for sale|business for sale/i.test(t),
+  );
   if (industry) into.industry = industry;
 }
 
@@ -137,15 +145,12 @@ export function parseBusinessBrokerListingPage(
     const inLoc = og?.match(/\bin\s+([^,-]+),\s*([A-Za-z]{2,})\b/i);
     const m = dashLoc ?? inLoc;
     if (m) {
-      const statePart = m[2]!.trim();
+      const statePart = m[2]?.trim();
       const state =
         statePart.length === 2
           ? statePart.toUpperCase()
           : statePart.slice(0, 2).toUpperCase();
-      Object.assign(
-        extract,
-        parseLocationParts([`${m[1]!.trim()}, ${state}`]),
-      );
+      Object.assign(extract, parseLocationParts([`${m[1]?.trim()}, ${state}`]));
     }
   }
 

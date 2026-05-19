@@ -41,7 +41,10 @@ describe("businessbroker catalog", () => {
       BUSINESSBROKER_CALIFORNIA_CATALOG_URL,
     );
     expect(refs).toHaveLength(2);
-    expect(refs.map((r) => r.externalId).sort()).toEqual(["1008299", "1010506"]);
+    expect(refs.map((r) => r.externalId).sort()).toEqual([
+      "1008299",
+      "1010506",
+    ]);
     expect(refs[0]?.url).toContain("www.businessbroker.net");
   });
 

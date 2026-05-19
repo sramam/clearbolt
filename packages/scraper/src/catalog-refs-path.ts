@@ -6,9 +6,9 @@ export { catalogRefsPath } from "./adapter-scoped-paths.js";
 import { catalogAdapterFromUrl } from "./catalog-adapter-from-url.js";
 import {
   CatalogRefsAdapterMismatchError,
+  type CatalogRefsFile,
   readCatalogRefsFile,
   resolveCatalogRefsPath,
-  type CatalogRefsFile,
 } from "./catalog-refs-file.js";
 
 export function catalogPathSlugFromUrl(catalogUrl: string): string {

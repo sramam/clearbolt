@@ -101,10 +101,12 @@ export function resolveCatalogUrl(
 ): string {
   if (positionalUrl?.trim()) return positionalUrl.trim();
   if (sourceId) return requireCatalogSource(sourceId).defaultCatalogUrl;
-  return CATALOG_SOURCES[0]!.defaultCatalogUrl;
+  return CATALOG_SOURCES[0]?.defaultCatalogUrl;
 }
 
-export function catalogSourceForUrl(catalogUrl: string): CatalogSourceDefinition {
+export function catalogSourceForUrl(
+  catalogUrl: string,
+): CatalogSourceDefinition {
   const adapter = catalogAdapterFromUrl(catalogUrl);
   const known = getCatalogSource(adapter);
   if (known) return known;

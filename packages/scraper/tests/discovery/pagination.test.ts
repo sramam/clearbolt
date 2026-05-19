@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
+import {
+  discoverNextBizBuySellCatalogPageUrl,
+  recoverCatalogPageUrl,
+} from "../../src/adapters/bizbuysell/catalog.js";
 import { discoverNextPageUrl } from "../../src/discovery/pagination/discover-next.js";
 import {
   pathIncrementStrategy,
   queryPageStrategy,
   relNextStrategy,
 } from "../../src/discovery/pagination/strategies.js";
-import {
-  discoverNextBizBuySellCatalogPageUrl,
-  recoverCatalogPageUrl,
-} from "../../src/adapters/bizbuysell/catalog.js";
 
 const CALIFORNIA_CATALOG =
   "https://www.bizbuysell.com/california-businesses-for-sale/";
@@ -16,11 +16,9 @@ const CALIFORNIA_CATALOG =
 describe("discovery/pagination", () => {
   it("rel-next strategy follows link rel=next", () => {
     const html = `<link rel="next" href="/foo?page=2">`;
-    const next = discoverNextPageUrl(
-      html,
-      "https://example.com/foo?page=1",
-      [relNextStrategy],
-    );
+    const next = discoverNextPageUrl(html, "https://example.com/foo?page=1", [
+      relNextStrategy,
+    ]);
     expect(next).toBe("https://example.com/foo?page=2");
   });
 
@@ -39,11 +37,11 @@ describe("discovery/pagination", () => {
       catalogPathPattern: /-for-sale(?:\/\d+)?\/?$/i,
       pageFromPathname: (p) => {
         const m = p.match(/-for-sale\/(\d+)\/?$/i);
-        return m ? Number.parseInt(m[1]!, 10) : 1;
+        return m?.[1] ? Number.parseInt(m[1], 10) : 1;
       },
       pageFromLinkPathname: (p) => {
         const m = p.match(/-for-sale\/(\d+)\/?$/i);
-        return m ? Number.parseInt(m[1]!, 10) : null;
+        return m?.[1] ? Number.parseInt(m[1], 10) : null;
       },
       buildPageUrl: (base, n) => {
         const slug = base.pathname.replace(/\/\d+\/?$/, "").replace(/\/$/, "");
@@ -56,10 +54,11 @@ describe("discovery/pagination", () => {
       <a href="/california-for-sale/1/">1</a>
       <a href="/california-for-sale/2/">2</a>
     `;
-    const next = discoverNextPageUrl(html, CALIFORNIA_CATALOG.replace(
-      "businesses-for-sale",
-      "for-sale",
-    ), [strategy]);
+    const next = discoverNextPageUrl(
+      html,
+      CALIFORNIA_CATALOG.replace("businesses-for-sale", "for-sale"),
+      [strategy],
+    );
     expect(next).toContain("/california-for-sale/2/");
   });
 });
@@ -74,9 +73,9 @@ describe("bizbuysell catalog pagination", () => {
         <a class="bbsPager_next">Next</a>
       </div>
     `;
-    expect(
-      discoverNextBizBuySellCatalogPageUrl(html, CALIFORNIA_CATALOG),
-    ).toBe("https://www.bizbuysell.com/california-businesses-for-sale/2/");
+    expect(discoverNextBizBuySellCatalogPageUrl(html, CALIFORNIA_CATALOG)).toBe(
+      "https://www.bizbuysell.com/california-businesses-for-sale/2/",
+    );
     expect(
       discoverNextBizBuySellCatalogPageUrl(
         html,
@@ -91,14 +90,10 @@ describe("bizbuysell catalog pagination", () => {
       <a href="https://www.bizbuysell.com/business-opportunity/sample/1111001/">x</a>
     `;
     expect(
-      discoverNextBizBuySellCatalogPageUrl(
-        html,
-        "https://m.bizbuysell.com/",
-        {
-          catalogBaseUrl: CALIFORNIA_CATALOG,
-          currentPageNumber: 45,
-        },
-      ),
+      discoverNextBizBuySellCatalogPageUrl(html, "https://m.bizbuysell.com/", {
+        catalogBaseUrl: CALIFORNIA_CATALOG,
+        currentPageNumber: 45,
+      }),
     ).toBe("https://www.bizbuysell.com/california-businesses-for-sale/46/");
   });
 

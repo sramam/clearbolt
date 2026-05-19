@@ -147,7 +147,10 @@ export function scrapeMetaPath(
   domain: string,
   scrapeId: string,
 ): string {
-  return join(scrapeBaseDir(dataRootDir, lane, domain, scrapeId), "scrape.json");
+  return join(
+    scrapeBaseDir(dataRootDir, lane, domain, scrapeId),
+    "scrape.json",
+  );
 }
 
 export function scrapeRunPath(
@@ -268,7 +271,10 @@ export async function readScrapeMeta(path: string): Promise<ScrapeMeta | null> {
   }
 }
 
-export async function writeScrapeMeta(path: string, meta: ScrapeMeta): Promise<void> {
+export async function writeScrapeMeta(
+  path: string,
+  meta: ScrapeMeta,
+): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(meta, null, 2)}\n`, "utf8");
 }
@@ -284,12 +290,17 @@ export async function readScrapeRun(path: string): Promise<ScrapeRun | null> {
   }
 }
 
-export async function writeScrapeRun(path: string, run: ScrapeRun): Promise<void> {
+export async function writeScrapeRun(
+  path: string,
+  run: ScrapeRun,
+): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(run, null, 2)}\n`, "utf8");
 }
 
-export async function readListingIndex(path: string): Promise<ListingIndex | null> {
+export async function readListingIndex(
+  path: string,
+): Promise<ListingIndex | null> {
   try {
     const raw = await readFile(path, "utf8");
     return listingIndexSchema.parse(JSON.parse(raw));

@@ -142,7 +142,7 @@ export function pathIncrementStrategy(
       return null;
     },
   };
-};
+}
 
 /** `?page=N` query pagination. */
 export const queryPageStrategy: PaginationStrategy = {

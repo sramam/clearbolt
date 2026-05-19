@@ -1,17 +1,17 @@
 import type { ListingRef } from "@clearbolt/core";
 import {
-  CatalogPageBlockedError,
-  detectCatalogPageBlock,
-} from "../catalog-page-block.js";
-import {
   isBizBuySellCatalogUrl,
   normalizeCatalogUrlForCompare as normalizeBizBuySellCatalogUrlForCompare,
   recoverCatalogPageUrl as recoverBizBuySellCatalogPageUrl,
 } from "../adapters/bizbuysell/catalog.js";
 import {
+  CatalogPageBlockedError,
+  detectCatalogPageBlock,
+} from "../catalog-page-block.js";
+import {
+  type MergeListingRef,
   countListingRefsNewOnPage,
   mergeListingRefByUrl,
-  type MergeListingRef,
 } from "./listing-ref-merge.js";
 
 export type { MergeListingRef } from "./listing-ref-merge.js";
@@ -93,7 +93,10 @@ export interface WalkCatalogPagesOptions {
   }) => void | Promise<void>;
   /** Site-specific catalog URL check when fetch `finalUrl` drifts. */
   isCatalogUrl?: (url: string) => boolean;
-  recoverCatalogPageUrl?: (catalogBaseUrl: string, pageNumber: number) => string;
+  recoverCatalogPageUrl?: (
+    catalogBaseUrl: string,
+    pageNumber: number,
+  ) => string;
   normalizeCatalogUrlForCompare?: (url: string) => string;
 }
 
@@ -151,7 +154,11 @@ export async function walkCatalogPages(
 
     const pageStarted = performance.now();
     const fetchStarted = performance.now();
-    const { body, finalUrl, status: pageStatus } = await options.fetchPage(url, {
+    const {
+      body,
+      finalUrl,
+      status: pageStatus,
+    } = await options.fetchPage(url, {
       pageIndex: pagesFetched,
       altUrl,
     });

@@ -37,8 +37,8 @@ function parseLocationText(text: string | undefined): {
   const comma = cleaned.match(/^(.+?),\s*([A-Z]{2})$/);
   if (comma) {
     return {
-      city: comma[1]!.trim(),
-      state: comma[2]!.trim(),
+      city: comma[1]?.trim(),
+      state: comma[2]?.trim(),
       location: cleaned,
     };
   }
@@ -63,7 +63,11 @@ function readJsonLdOffers($: cheerio.CheerioAPI): {
         const o = node as Record<string, unknown>;
         if (typeof o.name === "string" && !title) title = o.name.trim();
         const offers = o.offers;
-        const offerList = Array.isArray(offers) ? offers : offers ? [offers] : [];
+        const offerList = Array.isArray(offers)
+          ? offers
+          : offers
+            ? [offers]
+            : [];
         for (const offer of offerList) {
           if (!offer || typeof offer !== "object") continue;
           const priceVal = (offer as { price?: unknown }).price;

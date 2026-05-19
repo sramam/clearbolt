@@ -43,23 +43,21 @@ describe("waf-retry-policy", () => {
   });
 
   it("browser lane does not retry hard denial", () => {
-    expect(
-      shouldRetryBrowserWafFetch(403, ACCESS_DENIED, 0, 3),
-    ).toBe(false);
+    expect(shouldRetryBrowserWafFetch(403, ACCESS_DENIED, 0, 3)).toBe(false);
     expect(
       shouldRetryBrowserWafFetch(403, "<html>thin akamai</html>", 0, 3),
     ).toBe(true);
   });
 
   it("resolveWafMaxAttempts defaults to 3", () => {
-    delete process.env.CLEARBOLT_WAF_MAX_ATTEMPTS;
+    process.env.CLEARBOLT_WAF_MAX_ATTEMPTS = undefined;
     expect(resolveWafMaxAttempts()).toBe(3);
     process.env.CLEARBOLT_WAF_MAX_ATTEMPTS = "5";
     expect(resolveWafMaxAttempts()).toBe(5);
   });
 
   it("akamaiHardBlockProxyRetryAttempts defaults to 1", () => {
-    delete process.env.CLEARBOLT_AKAMAI_HARD_BLOCK_PROXY_RETRY;
+    process.env.CLEARBOLT_AKAMAI_HARD_BLOCK_PROXY_RETRY = undefined;
     expect(akamaiHardBlockProxyRetryAttempts()).toBe(1);
     process.env.CLEARBOLT_AKAMAI_HARD_BLOCK_PROXY_RETRY = "0";
     expect(akamaiHardBlockProxyRetryAttempts()).toBe(0);

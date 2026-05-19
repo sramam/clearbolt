@@ -2,8 +2,7 @@
 export function isTransientNetworkError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   const cause = (err as { cause?: unknown })?.cause;
-  const causeMsg =
-    cause instanceof Error ? cause.message : String(cause ?? "");
+  const causeMsg = cause instanceof Error ? cause.message : String(cause ?? "");
   const code =
     (err as { code?: string }).code ??
     (cause as { code?: string } | undefined)?.code;

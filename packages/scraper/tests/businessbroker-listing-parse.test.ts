@@ -35,7 +35,9 @@ describe("businessbroker listing parse", () => {
         Asking Price: $500,000
         BBN Listing #: 42
       </motion>
-    `.replace(/<motion/g, "<div").replace(/<\/motion>/g, "</div>");
+    `
+      .replace(/<motion/g, "<div")
+      .replace(/<\/motion>/g, "</div>");
     const parsed = parseBusinessBrokerListingPage(
       html,
       "https://www.businessbroker.net/business-for-sale/sample/42.aspx",

@@ -1,6 +1,6 @@
-import type { Fetcher } from "../fetcher.js";
 import type { FetchHtmlWithHttpWafPolicyOptions } from "../fetch-with-waf-policy.js";
 import { fetchHtmlWithHttpWafPolicy } from "../fetch-with-waf-policy.js";
+import type { Fetcher } from "../fetcher.js";
 import {
   isListingOnBrokerProfile,
   parseDealStreamBrokerProfilePage,
@@ -22,7 +22,11 @@ export async function enrichListingFromBrokerProfile(
   const listingId = extract.externalId ?? extract.listingId;
   if (!profileUrl || !listingId) return;
 
-  const { body } = await fetchHtmlWithHttpWafPolicy(fetcher, profileUrl, wafPolicy);
+  const { body } = await fetchHtmlWithHttpWafPolicy(
+    fetcher,
+    profileUrl,
+    wafPolicy,
+  );
   const profile = parseDealStreamBrokerProfilePage(body, profileUrl);
 
   if (!extract.brokerName && profile.name) {

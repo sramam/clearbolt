@@ -116,9 +116,7 @@ describe("loopnet catalog", () => {
       "2484192",
     ]);
     for (const r of refs) {
-      expect(r.url).toContain(
-        "www.loopnet.com/biz/business-opportunity/",
-      );
+      expect(r.url).toContain("www.loopnet.com/biz/business-opportunity/");
     }
   });
 

@@ -33,10 +33,15 @@ export type BrokerProfileExtract = {
 function extractJsonLdPerson(html: string): Partial<BrokerProfileExtract> {
   const re =
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
+  let m: RegExpExecArray | null = re.exec(html);
+  while (m !== null) {
     try {
-      const data = JSON.parse(m[1]!) as Record<string, unknown>;
+      const jsonRaw = m[1];
+      if (jsonRaw === undefined) {
+        m = re.exec(html);
+        continue;
+      }
+      const data = JSON.parse(jsonRaw) as Record<string, unknown>;
       const nodes = Array.isArray(data) ? data : [data];
       for (const node of nodes) {
         const type = node["@type"];
@@ -51,17 +56,17 @@ function extractJsonLdPerson(html: string): Partial<BrokerProfileExtract> {
               : typeof worksFor?.description === "string"
                 ? worksFor.description
                 : undefined,
-          firm:
-            typeof worksFor?.name === "string" ? worksFor.name : undefined,
+          firm: typeof worksFor?.name === "string" ? worksFor.name : undefined,
           profileUrl:
             typeof node.url === "string"
-              ? normalizeBizBuySellBrokerProfileUrl(node.url) ?? undefined
+              ? (normalizeBizBuySellBrokerProfileUrl(node.url) ?? undefined)
               : undefined,
         };
       }
     } catch {
       /* skip */
     }
+    m = re.exec(html);
   }
   return {};
 }
@@ -75,7 +80,8 @@ function cardFromAnchor(
   if (!href) return null;
   const abs = new URL(href, "https://www.bizbuysell.com").toString();
   const externalId = extractListingIdFromBizBuySellUrl(abs);
-  const title = a.text().trim() || $(el).find("h2,h3,h4,.title").first().text().trim();
+  const title =
+    a.text().trim() || $(el).find("h2,h3,h4,.title").first().text().trim();
   return {
     url: abs,
     externalId,
@@ -125,7 +131,8 @@ export function parseBizBuySellBrokerProfilePage(
     name: fromLd.name ?? ($("h1").first().text().trim() || undefined),
     firm: fromLd.firm,
     about: fromLd.about,
-    tagline: $(".broker-tagline, .profile-tagline").first().text().trim() || undefined,
+    tagline:
+      $(".broker-tagline, .profile-tagline").first().text().trim() || undefined,
     activeListings: [],
     soldListings: [],
     soldListingIds: [],
@@ -135,7 +142,11 @@ export function parseBizBuySellBrokerProfilePage(
   if (tel) extract.phone = tel.replace(/^tel:/i, "").trim();
 
   const mail = $('a[href^="mailto:"]').first().attr("href");
-  if (mail) extract.email = mail.replace(/^mailto:/i, "").split("?")[0]?.trim();
+  if (mail)
+    extract.email = mail
+      .replace(/^mailto:/i, "")
+      .split("?")[0]
+      ?.trim();
 
   const soldRoot = $(
     "#soldListings, [id*='sold'], [data-tab='sold'], .sold-listings, section.sold",
@@ -154,7 +165,8 @@ export function parseBizBuySellBrokerProfilePage(
     ? collectListingCards($, activeRoot)
     : collectListingCards(
         $,
-        $("a[href*='business-opportunity'], a[href*='business-for-sale']").first()
+        $("a[href*='business-opportunity'], a[href*='business-for-sale']")
+          .first()
           .parent()
           .parent(),
       );

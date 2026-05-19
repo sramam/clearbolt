@@ -7,15 +7,17 @@ import {
   shouldSkipListingFetch,
 } from "@clearbolt/dedup";
 import type { IngestSourceResult } from "@clearbolt/dedup";
+import { listingFetchMinIntervalMs } from "@clearbolt/dedup";
 import type {
   EvidenceStore,
   MetadataStore,
   ProcessedArtifactStore,
 } from "@clearbolt/storage";
-import { persistListingProcessedArtifacts } from "./listing-artifacts.js";
-import type { Fetcher } from "./fetcher.js";
-import { HttpFetcher } from "./http-fetcher.js";
-import { proxySessionKeyFromEnv } from "./proxy-config.js";
+import { enrichListingExtract } from "./adapters/bizbuysell-listing-enrich.js";
+import {
+  parseBizBuySellListingPage,
+  toParsedListingFields,
+} from "./adapters/bizbuysell-listing-parse.js";
 import {
   BIZBUYSELL_ADAPTER_ID,
   buildSourceRecord,
@@ -23,27 +25,30 @@ import {
   fetchListingHtmlWithWafPolicy,
   parseSearchUrl,
 } from "./adapters/bizbuysell.js";
-import { enrichListingExtract } from "./adapters/bizbuysell-listing-enrich.js";
-import {
-  parseBizBuySellListingPage,
-  toParsedListingFields,
-} from "./adapters/bizbuysell-listing-parse.js";
 import { listingRefFromBizBuySellUrl } from "./bizbuysell-listing-url.js";
-import { discoverBizBuySellListingRefsFromSerper } from "./bizbuysell-serper-discovery.js";
 import {
   type BizBuySellDiscoveryMode,
-  resolveListingIngestConcurrency,
-  shouldPreferHttpIngestForBizBuySell,
+  listingIngestWafPolicy,
   primeBizBuySellResidentialHosts,
   resolveBizBuySellDiscoveryMode,
-  serperSupplementEnabled,
-  listingIngestWafPolicy,
   resolveBrowserFallbackWorkerCount,
+  resolveListingIngestConcurrency,
+  serperSupplementEnabled,
+  shouldPreferHttpIngestForBizBuySell,
   shouldUseBrowserFirstForBizBuySell,
   shouldUseHttpProxyFirstForBizBuySell,
   supplementListingRefsFromSerper,
 } from "./bizbuysell-run-policy.js";
-import { IngestFailureCollector } from "./ingest-failure-log.js";
+import { discoverBizBuySellListingRefsFromSerper } from "./bizbuysell-serper-discovery.js";
+import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
+import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
+import type { Fetcher } from "./fetcher.js";
+import { buildBizBuySellFixtureFetcher } from "./fixtures/build-bizbuysell-fixture-fetcher.js";
+import {
+  htmlListingBodyFingerprint,
+  htmlListingBodyText,
+} from "./html-body-fingerprint.js";
+import { HttpFetcher } from "./http-fetcher.js";
 import {
   clearIngestFailure,
   countNonRetriableIngestFailures,
@@ -52,34 +57,27 @@ import {
   readIngestFailuresCollection,
   recordIngestFailure,
 } from "./ingest-failure-collection.js";
-import { akamaiHardBlockProxyRetryAttempts } from "./waf-retry-policy.js";
+import { IngestFailureCollector } from "./ingest-failure-log.js";
+import { persistListingProcessedArtifacts } from "./listing-artifacts.js";
 import {
+  type ListingIngestStateStore,
   buildListingIngestState,
   countSatisfiedInRefList,
   externalIdFromListingRef,
   failureTraceFromError,
   isSatisfiedListingStatus,
-  type ListingIngestStateStore,
 } from "./listing-ingest-state.js";
-import { listingFetchMinIntervalMs } from "@clearbolt/dedup";
-import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
-import {
-  htmlListingBodyFingerprint,
-  htmlListingBodyText,
-} from "./html-body-fingerprint.js";
-import {
-  buildBizBuySellFixtureFetcher,
-} from "./fixtures/build-bizbuysell-fixture-fetcher.js";
-import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
 import { mapConcurrent } from "./map-concurrent.js";
+import { proxySessionKeyFromEnv } from "./proxy-config.js";
 import { residentialProxyEndpointCount } from "./proxy-config.js";
 import { proxySessionRotateWindowMs } from "./proxy-session-rotate.js";
 import {
+  type RotatingFetcherCloser,
   createRotatingBrowserFetcher,
   createRotatingHttpFetcher,
-  type RotatingFetcherCloser,
 } from "./rotating-proxy-fetcher.js";
 import { serializedFetcher } from "./serialized-fetcher.js";
+import { akamaiHardBlockProxyRetryAttempts } from "./waf-retry-policy.js";
 
 export type { BizBuySellDiscoveryMode } from "./bizbuysell-run-policy.js";
 
@@ -148,10 +146,7 @@ function keywordsFromSearchUrl(searchUrl: string): string {
   }
 }
 
-type IngestOneListingResult =
-  | "ingested"
-  | "skipped_fresh"
-  | "skipped_known";
+type IngestOneListingResult = "ingested" | "skipped_fresh" | "skipped_known";
 
 export type ListingIngestRunStats = {
   listingsIngested: number;
@@ -206,14 +201,10 @@ async function ingestOneListing(
     return skipped;
   }
 
-  const { html, finalUrl } = await fetchListingHtmlWithWafPolicy(
-    fetcher,
-    ref,
-    {
-      ...wafPolicy,
-      desktopFirst: options.prioritizeIngestFailures === true,
-    },
-  );
+  const { html, finalUrl } = await fetchListingHtmlWithWafPolicy(fetcher, ref, {
+    ...wafPolicy,
+    desktopFirst: options.prioritizeIngestFailures === true,
+  });
   const detailBuf = Buffer.from(html, "utf8");
   const evRef = await options.evidence.put(detailBuf, {
     adapter: BIZBUYSELL_ADAPTER_ID,
@@ -404,8 +395,7 @@ export async function ingestListingRefs(
       if (hardBlocks > 0) {
         options.onProgress?.({
           phase: "fetch",
-          message:
-            `Retrying ${refs.length} failed listing(s) (${hardBlocks} prior Akamai hard block(s); use a fresh CLEARBOLT_PROXY_SESSION_ID and/or --headed)`,
+          message: `Retrying ${refs.length} failed listing(s) (${hardBlocks} prior Akamai hard block(s); use a fresh CLEARBOLT_PROXY_SESSION_ID and/or --headed)`,
         });
       }
     } else {
@@ -477,7 +467,9 @@ export async function ingestListingRefs(
         return w;
       });
     }
-    const w = await browserPoolInit[slot]!;
+    const init = browserPoolInit[slot];
+    if (!init) return undefined;
+    const w = await init;
     return w ?? undefined;
   };
 
@@ -492,7 +484,10 @@ export async function ingestListingRefs(
     !useRotatingHttp && opts?.sharedBrowserFetcher
       ? opts.sharedBrowserFetcher
       : undefined;
-  const sessionMins = Math.max(1, Math.round(proxySessionRotateWindowMs() / 60_000));
+  const sessionMins = Math.max(
+    1,
+    Math.round(proxySessionRotateWindowMs() / 60_000),
+  );
   const proxyNote = useRotatingHttp
     ? proxyPorts > 0
       ? `, ${concurrency}/${proxyPorts} proxy port(s)${concurrencyCap ? ` (CLEARBOLT_SCRAPE_CONCURRENCY=${concurrencyCap})` : ""}, ~${sessionMins}m session rotation`
@@ -516,7 +511,9 @@ export async function ingestListingRefs(
   });
 
   const rotatingWorkers: RotatingFetcherCloser[] = useRotatingHttp
-    ? Array.from({ length: workerCount }, (_, i) => createRotatingHttpFetcher(i))
+    ? Array.from({ length: workerCount }, (_, i) =>
+        createRotatingHttpFetcher(i),
+      )
     : [];
 
   let ingested = 0;
@@ -569,8 +566,7 @@ export async function ingestListingRefs(
     if (skippedFresh > 0) parts.push(`${skippedFresh} fresh-skip`);
     if (failed > 0) parts.push(`${failed} failed`);
     const suffix = parts.length > 0 ? ` — ${parts.join(", ")}` : "";
-    const scanNote =
-      scanned > satisfied ? `, ${scanned} refs scanned` : "";
+    const scanNote = scanned > satisfied ? `, ${scanned} refs scanned` : "";
     options.onProgress?.({
       phase: "ingest",
       message: `${satisfied} / ${batch.length} satisfied${scanNote}${suffix}`,
@@ -597,103 +593,104 @@ export async function ingestListingRefs(
 
   try {
     await mapConcurrent(batch, workerCount, async (ref, _i, workerIndex) => {
-    const workerFetcher = useRotatingHttp
-      ? rotatingWorkers[workerIndex]!
-      : sharedBrowser ?? fetcher;
-    const browserForWorker = perWorkerBrowser
-      ? await browserFetcherForWorker(workerIndex)
-      : sharedBrowserLane;
-    const workerWaf: FetchHtmlWithHttpWafPolicyOptions = {
-      ...wafPolicy,
-      browserFetcher: browserForWorker,
-    };
-    try {
-      const outcome = await ingestOneListing(
-        options,
-        workerFetcher,
-        workerWaf,
-        ref,
-        keyer,
-      );
-      markHandled(outcome, outcome === "ingested");
-      consecutiveFailures = 0;
-      return outcome === "ingested";
-    } catch (err) {
-      let lastErr: unknown = err;
-      const hardBlock =
-        lastErr instanceof Error &&
-        isNonRetriableIngestFailureMessage(lastErr.message);
-      if (hardBlock && useRotatingHttp) {
-        const proxyRetries = akamaiHardBlockProxyRetryAttempts();
-        for (let retry = 0; retry < proxyRetries; retry++) {
-          rotatingWorkers[workerIndex]?.rotateSession();
-          if (process.env.CLEARBOLT_PROXY_ROTATION_LOG === "1") {
-            console.log(
-              `[ingest] Akamai hard block for ${ref.externalId ?? ref.url}; ` +
-                `rotating proxy and retrying (${retry + 1}/${proxyRetries})`,
-            );
-          }
-          try {
-            const outcome = await ingestOneListing(
-              options,
-              workerFetcher,
-              workerWaf,
-              ref,
-              keyer,
-            );
-            markHandled(outcome, outcome === "ingested");
-            consecutiveFailures = 0;
-            return outcome === "ingested";
-          } catch (retryErr) {
-            lastErr = retryErr;
-            if (
-              !(
-                retryErr instanceof Error &&
-                isNonRetriableIngestFailureMessage(retryErr.message)
-              )
-            ) {
-              break;
+      const rotating = rotatingWorkers[workerIndex];
+      const workerFetcher = useRotatingHttp
+        ? (rotating ?? fetcher)
+        : (sharedBrowser ?? fetcher);
+      const browserForWorker = perWorkerBrowser
+        ? await browserFetcherForWorker(workerIndex)
+        : sharedBrowserLane;
+      const workerWaf: FetchHtmlWithHttpWafPolicyOptions = {
+        ...wafPolicy,
+        browserFetcher: browserForWorker,
+      };
+      try {
+        const outcome = await ingestOneListing(
+          options,
+          workerFetcher,
+          workerWaf,
+          ref,
+          keyer,
+        );
+        markHandled(outcome, outcome === "ingested");
+        consecutiveFailures = 0;
+        return outcome === "ingested";
+      } catch (err) {
+        let lastErr: unknown = err;
+        const hardBlock =
+          lastErr instanceof Error &&
+          isNonRetriableIngestFailureMessage(lastErr.message);
+        if (hardBlock && useRotatingHttp) {
+          const proxyRetries = akamaiHardBlockProxyRetryAttempts();
+          for (let retry = 0; retry < proxyRetries; retry++) {
+            rotatingWorkers[workerIndex]?.rotateSession();
+            if (process.env.CLEARBOLT_PROXY_ROTATION_LOG === "1") {
+              console.log(
+                `[ingest] Akamai hard block for ${ref.externalId ?? ref.url}; ` +
+                  `rotating proxy and retrying (${retry + 1}/${proxyRetries})`,
+              );
+            }
+            try {
+              const outcome = await ingestOneListing(
+                options,
+                workerFetcher,
+                workerWaf,
+                ref,
+                keyer,
+              );
+              markHandled(outcome, outcome === "ingested");
+              consecutiveFailures = 0;
+              return outcome === "ingested";
+            } catch (retryErr) {
+              lastErr = retryErr;
+              if (
+                !(
+                  retryErr instanceof Error &&
+                  isNonRetriableIngestFailureMessage(retryErr.message)
+                )
+              ) {
+                break;
+              }
             }
           }
         }
+        failures.logFailure(ref, lastErr);
+        const failId = externalIdFromListingRef(ref);
+        const failureTrace = failureTraceFromError(lastErr);
+        if (options.listingIngestState && failId) {
+          await persistListingIngestState(options.listingIngestState, {
+            adapter: BIZBUYSELL_ADAPTER_ID,
+            externalId: failId,
+            url: ref.url,
+            status: "failed",
+            failure: failureTrace,
+          }).catch(() => undefined);
+        }
+        if (options.ingestFailuresPath) {
+          await recordIngestFailure(
+            options.ingestFailuresPath,
+            ref,
+            BIZBUYSELL_ADAPTER_ID,
+            lastErr,
+            failureTrace,
+          ).catch(() => undefined);
+        }
+        const failedHard =
+          lastErr instanceof Error &&
+          isNonRetriableIngestFailureMessage(lastErr.message);
+        if (!failedHard) consecutiveFailures++;
+        if (!proxyExhaustionHintShown && consecutiveFailures >= 8) {
+          proxyExhaustionHintShown = true;
+          console.error(
+            "[ingest] Many consecutive retriable failures — try lower concurrency " +
+              "(CLEARBOLT_SCRAPE_CONCURRENCY=8), longer sticky sessions " +
+              "(CLEARBOLT_PROXY_SESSION_DURATION_MINUTES=1440), or a new CLEARBOLT_PROXY_SESSION_ID per run.",
+          );
+        }
+        markHandled("failed", true);
+        return false;
       }
-      failures.logFailure(ref, lastErr);
-      const failId = externalIdFromListingRef(ref);
-      const failureTrace = failureTraceFromError(lastErr);
-      if (options.listingIngestState && failId) {
-        await persistListingIngestState(options.listingIngestState, {
-          adapter: BIZBUYSELL_ADAPTER_ID,
-          externalId: failId,
-          url: ref.url,
-          status: "failed",
-          failure: failureTrace,
-        }).catch(() => undefined);
-      }
-      if (options.ingestFailuresPath) {
-        await recordIngestFailure(
-          options.ingestFailuresPath,
-          ref,
-          BIZBUYSELL_ADAPTER_ID,
-          lastErr,
-          failureTrace,
-        ).catch(() => undefined);
-      }
-      const failedHard =
-        lastErr instanceof Error &&
-        isNonRetriableIngestFailureMessage(lastErr.message);
-      if (!failedHard) consecutiveFailures++;
-      if (!proxyExhaustionHintShown && consecutiveFailures >= 8) {
-        proxyExhaustionHintShown = true;
-        console.error(
-          "[ingest] Many consecutive retriable failures — try lower concurrency " +
-            "(CLEARBOLT_SCRAPE_CONCURRENCY=8), longer sticky sessions " +
-            "(CLEARBOLT_PROXY_SESSION_DURATION_MINUTES=1440), or a new CLEARBOLT_PROXY_SESSION_ID per run.",
-        );
-      }
-      markHandled("failed", true);
-      return false;
-    }
-  });
+    });
   } finally {
     await Promise.all([
       ...rotatingWorkers.map((w) => w.close()),
@@ -715,12 +712,11 @@ export async function ingestListingRefs(
   };
 }
 
-export function withCanonicalTracking<T extends ListingIngestOptions & {
-  onIngested?: RunBizBuySellScrapeOptions["onIngested"];
-}>(
-  options: T,
-  canonicalIds: string[],
-): T {
+export function withCanonicalTracking<
+  T extends ListingIngestOptions & {
+    onIngested?: RunBizBuySellScrapeOptions["onIngested"];
+  },
+>(options: T, canonicalIds: string[]): T {
   const prior = options.onIngested;
   return {
     ...options,
@@ -748,9 +744,7 @@ export async function runBizBuySellScrape(
     discovery: options.discovery,
   });
   const keywords =
-    options.searchKeywords?.trim() ||
-    keywordsFromSearchUrl(searchUrlArg) ||
-    "";
+    options.searchKeywords?.trim() || keywordsFromSearchUrl(searchUrlArg) || "";
 
   primeBizBuySellResidentialHosts();
   const browserFirst =
@@ -855,11 +849,7 @@ export async function runBizBuySellScrape(
       phase: "discovery",
       message: "Supplementing with Serper listing URLs…",
     });
-    const merged = await supplementListingRefsFromSerper(
-      refs,
-      keywords,
-      limit,
-    );
+    const merged = await supplementListingRefsFromSerper(refs, keywords, limit);
     refs = merged.refs;
     serperSupplement = merged.serperAdded;
   }

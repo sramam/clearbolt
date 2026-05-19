@@ -12,12 +12,12 @@ describe("bizbuysell-run-policy", () => {
   const env = process.env;
 
   beforeEach(() => {
-    delete process.env.CLEARBOLT_BIZBUYSELL_DISCOVERY;
-    delete process.env.SERP_DEV_API_KEY;
-    delete process.env.SERPER_API_KEY;
-    delete process.env.CLEARBOLT_BIZBUYSELL_SERPER_SUPPLEMENT;
-    delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
-    delete process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST;
+    process.env.CLEARBOLT_BIZBUYSELL_DISCOVERY = undefined;
+    process.env.SERP_DEV_API_KEY = undefined;
+    process.env.SERPER_API_KEY = undefined;
+    process.env.CLEARBOLT_BIZBUYSELL_SERPER_SUPPLEMENT = undefined;
+    process.env.CLEARBOLT_PROXY_RESIDENTIAL = undefined;
+    process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST = undefined;
   });
 
   afterEach(() => {
@@ -62,7 +62,9 @@ describe("bizbuysell-run-policy", () => {
   it("catalog discovery waf policy drops browser escalation", async () => {
     process.env.CLEARBOLT_PROXY_RESIDENTIAL =
       "http://u:p@gate.decodo.com:10001";
-    const browserFetcher = { fetch: async () => ({ status: 200, body: "", headers: {}, finalUrl: "" }) };
+    const browserFetcher = {
+      fetch: async () => ({ status: 200, body: "", headers: {}, finalUrl: "" }),
+    };
     const tuned = catalogDiscoveryWafPolicy({
       persistNeedsBrowser: async () => {},
       browserFetcher: browserFetcher as never,

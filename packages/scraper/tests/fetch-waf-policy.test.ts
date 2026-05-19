@@ -1,8 +1,8 @@
 import type { FetchRequest, RawResponse } from "@clearbolt/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { clearProxyHostEscalations } from "../src/proxy-config.js";
 import { fetchHtmlWithHttpWafPolicy } from "../src/fetch-with-waf-policy.js";
 import type { Fetcher } from "../src/fetcher.js";
+import { clearProxyHostEscalations } from "../src/proxy-config.js";
 
 class SequencedFetcher implements Fetcher {
   private i = 0;
@@ -35,9 +35,9 @@ describe("fetchHtmlWithHttpWafPolicy", () => {
   const env = process.env;
 
   beforeEach(() => {
-    delete process.env.CLEARBOLT_PROXY_POLICY;
-    delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
-    delete process.env.CLEARBOLT_PROXY_DATACENTER;
+    process.env.CLEARBOLT_PROXY_POLICY = undefined;
+    process.env.CLEARBOLT_PROXY_RESIDENTIAL = undefined;
+    process.env.CLEARBOLT_PROXY_DATACENTER = undefined;
     clearProxyHostEscalations();
   });
 
@@ -156,7 +156,12 @@ describe("fetchHtmlWithHttpWafPolicy", () => {
 
   it("retries_on_browser_lane_when_primary", async () => {
     const browser = new SequencedFetcher([
-      { status: 403, body: "akamai challenge tiny", finalUrl: url, headers: {} },
+      {
+        status: 403,
+        body: "akamai challenge tiny",
+        finalUrl: url,
+        headers: {},
+      },
       {
         status: 200,
         body: `<html>${"x".repeat(6000)}</html>`,
@@ -175,8 +180,7 @@ describe("fetchHtmlWithHttpWafPolicy", () => {
 
   it("retries_http_after_residential_escalation_before_browser", async () => {
     process.env.CLEARBOLT_PROXY_POLICY = "direct-then-residential";
-    process.env.CLEARBOLT_PROXY_RESIDENTIAL =
-      "http://u:p@res.example:8080";
+    process.env.CLEARBOLT_PROXY_RESIDENTIAL = "http://u:p@res.example:8080";
     const http = new SequencedFetcher([
       { status: 403, body: "forbidden", finalUrl: url, headers: {} },
       {

@@ -17,11 +17,15 @@ const EXCLUDED_CATALOG_SLUG =
 export function catalogSlugFromPathname(pathname: string): string | null {
   const m = pathname.match(/^\/us\/search\/([^/]+)\/?$/i);
   if (!m) return null;
-  const segment = m[1]!;
+  const segment = m[1];
+  if (!segment) return null;
   const pageSuffix = segment.match(/^(.+)-(\d+)$/);
   if (pageSuffix) {
-    const page = Number.parseInt(pageSuffix[2]!, 10);
-    if (!Number.isNaN(page) && page >= 2) return pageSuffix[1]!;
+    const pageRaw = pageSuffix[2];
+    const slug = pageSuffix[1];
+    if (pageRaw === undefined || slug === undefined) return null;
+    const page = Number.parseInt(pageRaw, 10);
+    if (!Number.isNaN(page) && page >= 2) return slug;
   }
   return segment;
 }
@@ -29,10 +33,13 @@ export function catalogSlugFromPathname(pathname: string): string | null {
 export function catalogPageNumberFromPathname(pathname: string): number {
   const m = pathname.match(/^\/us\/search\/([^/]+)\/?$/i);
   if (!m) return 1;
-  const pageSuffix = m[1]!.match(/-(\d+)$/);
+  const pageSuffix = m[1]?.match(/-(\d+)$/);
   if (pageSuffix) {
-    const n = Number.parseInt(pageSuffix[1]!, 10);
-    if (!Number.isNaN(n) && n >= 1) return n;
+    const pageRaw = pageSuffix[1];
+    if (pageRaw !== undefined) {
+      const n = Number.parseInt(pageRaw, 10);
+      if (!Number.isNaN(n) && n >= 1) return n;
+    }
   }
   return 1;
 }
@@ -54,7 +61,9 @@ export function isBusinessesForSaleCatalogUrl(url: string): boolean {
 export function isBusinessesForSaleListingPathname(pathname: string): boolean {
   const m = pathname.match(LISTING_PATH);
   if (!m) return false;
-  return !NON_LISTING_SLUG.test(m[1]!);
+  const slug = m[1];
+  if (!slug) return false;
+  return !NON_LISTING_SLUG.test(slug);
 }
 
 export function isBusinessesForSaleListingUrl(url: string): boolean {

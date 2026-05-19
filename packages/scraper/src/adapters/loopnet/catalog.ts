@@ -1,20 +1,20 @@
-import * as cheerio from "cheerio";
 import type { ListingRef } from "@clearbolt/core";
+import * as cheerio from "cheerio";
+import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
 import {
+  type PaginationStrategy,
   discoverNextPageUrl,
   linkSelectorNextStrategy,
   normalizePageUrl,
   paginationNavNextStrategy,
   pathIncrementStrategy,
   relNextStrategy,
-  type PaginationStrategy,
 } from "../../discovery/pagination/index.js";
-import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
-import type { CatalogAdapter } from "../types.js";
 import {
   isLoopNetCatalogUrl,
   listingRefFromLoopNetUrl,
 } from "../../loopnet-listing-url.js";
+import type { CatalogAdapter } from "../types.js";
 
 export {
   isLoopNetCatalogUrl,
@@ -28,10 +28,12 @@ const CATALOG_PATH =
 export function catalogSlugFromPathname(pathname: string): string | null {
   const parts = pathname.replace(/\/$/, "").split("/").filter(Boolean);
   if (parts.length < 2 || parts[0] !== "biz") return null;
-  const last = parts[parts.length - 1]!;
+  const last = parts[parts.length - 1];
+  if (!last) return null;
   if (/^\d+$/.test(last)) parts.pop();
   if (parts.length === 2) {
-    const slug = parts[1]!;
+    const slug = parts[1];
+    if (!slug) return null;
     if (/businesses/i.test(slug)) return `/biz/${slug}`;
     return null;
   }
@@ -44,7 +46,8 @@ export function catalogSlugFromPathname(pathname: string): string | null {
 export function catalogPageNumberFromPathname(pathname: string): number {
   const parts = pathname.replace(/\/$/, "").split("/").filter(Boolean);
   if (parts.length < 3 || parts[0] !== "biz") return 1;
-  const last = parts[parts.length - 1]!;
+  const last = parts[parts.length - 1];
+  if (!last) return 1;
   const n = Number.parseInt(last, 10);
   if (!Number.isNaN(n) && n >= 1 && /^\d+$/.test(last)) return n;
   return 1;
@@ -114,7 +117,9 @@ function maxCatalogPageNumberInHtml(html: string, catalogSlug: string): number {
   const re = new RegExp(`${escaped}/+(\\d+)/`, "gi");
   let max = 0;
   for (const m of html.matchAll(re)) {
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) continue;
+    const n = Number.parseInt(pageRaw, 10);
     if (!Number.isNaN(n) && n > max) max = n;
   }
   return max;

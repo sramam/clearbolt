@@ -1,16 +1,17 @@
-import type { Fetcher } from "./fetcher.js";
 import {
-  runBizQuestScrape as runPipeline,
   type RunBizQuestScrapeOptions,
   type RunBizQuestScrapeResult,
+  runBizQuestScrape as runPipeline,
 } from "./bizquest-scrape-pipeline.js";
+import type { Fetcher } from "./fetcher.js";
 
 export type {
   RunBizQuestScrapeOptions,
   RunBizQuestScrapeResult,
 } from "./bizquest-scrape-pipeline.js";
 
-export interface RunBizQuestScrapeWithBrowserOptions extends RunBizQuestScrapeOptions {
+export interface RunBizQuestScrapeWithBrowserOptions
+  extends RunBizQuestScrapeOptions {
   skipBrowser?: boolean;
   headed?: boolean;
 }

@@ -15,12 +15,20 @@ describe("catalog discovery checkpoint", () => {
     const path = join(dir, "refs.json");
     try {
       await writeCatalogRefsFile(path, {
-        catalogUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
-        refs: [{ url: "https://www.bizbuysell.com/business-opportunity/a/1/", externalId: "1" }],
+        catalogUrl:
+          "https://www.bizbuysell.com/california-businesses-for-sale/",
+        refs: [
+          {
+            url: "https://www.bizbuysell.com/business-opportunity/a/1/",
+            externalId: "1",
+          },
+        ],
         complete: false,
         pagesFetched: 1,
-        lastPageUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
-        nextPageUrl: "https://www.bizbuysell.com/california-businesses-for-sale/2/",
+        lastPageUrl:
+          "https://www.bizbuysell.com/california-businesses-for-sale/",
+        nextPageUrl:
+          "https://www.bizbuysell.com/california-businesses-for-sale/2/",
       });
       const loaded = await readCatalogRefsFile(path);
       expect(isCatalogDiscoveryComplete(loaded)).toBe(false);
@@ -32,8 +40,10 @@ describe("catalog discovery checkpoint", () => {
   });
 
   it("walkCatalogPages calls onPageComplete with next url", async () => {
-    const checkpoints: Array<{ pagesFetched: number; nextPageUrl: string | null }> =
-      [];
+    const checkpoints: Array<{
+      pagesFetched: number;
+      nextPageUrl: string | null;
+    }> = [];
     const page1 = `<html><body>
       <a href="/business-opportunity/foo/100/">Listing</a>
       <motion.div class="ngx-pagination"><a href="https://www.bizbuysell.com/california-businesses-for-sale/2/">2</a></motion.div>
@@ -42,7 +52,8 @@ describe("catalog discovery checkpoint", () => {
 
     await walkCatalogPages({
       startUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
-      catalogBaseUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
+      catalogBaseUrl:
+        "https://www.bizbuysell.com/california-businesses-for-sale/",
       maxPages: 0,
       maxListings: 0,
       fetchPage: async (url) => ({
@@ -50,7 +61,10 @@ describe("catalog discovery checkpoint", () => {
         finalUrl: url,
       }),
       discoverRefs: async () => [
-        { url: "https://www.bizbuysell.com/business-opportunity/foo/100/", externalId: "100" },
+        {
+          url: "https://www.bizbuysell.com/business-opportunity/foo/100/",
+          externalId: "100",
+        },
       ],
       discoverNext: (_html, _pageUrl, pageNumber) =>
         pageNumber === 1
@@ -78,7 +92,8 @@ describe("catalog discovery checkpoint", () => {
         path,
         JSON.stringify({
           version: 1,
-          catalogUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
+          catalogUrl:
+            "https://www.bizbuysell.com/california-businesses-for-sale/",
           discoveredAt: new Date().toISOString(),
           refs: [],
         }),

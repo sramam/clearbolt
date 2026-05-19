@@ -2,18 +2,18 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { listingRefDedupeKey } from "./discovery/listing-ref-merge.js";
 import {
-  isSatisfiedListingStatus,
   type ListingIngestState,
   type ListingIngestStateStore,
+  isSatisfiedListingStatus,
 } from "./listing-ingest-state.js";
 import {
+  type ListingIndex,
   listingIndexPath,
   listingRunManifestPath,
   readListingIndex,
   scrapeBaseDir,
   writeListingIndex,
   writeListingRunManifest,
-  type ListingIndex,
 } from "./scrape-paths.js";
 import type { ScrapeRunContext } from "./scrape-run-context.js";
 
@@ -34,7 +34,10 @@ function indexToLegacyState(index: ListingIndex): ListingIngestState {
 export class ScrapeRunListingStateStore implements ListingIngestStateStore {
   constructor(private readonly ctx: ScrapeRunContext) {}
 
-  async get(adapter: string, externalId: string): Promise<ListingIngestState | null> {
+  async get(
+    adapter: string,
+    externalId: string,
+  ): Promise<ListingIngestState | null> {
     const index = await readListingIndex(
       listingIndexPath(
         this.ctx.dataRoot,
@@ -131,13 +134,17 @@ export class ScrapeRunListingStateStore implements ListingIngestStateStore {
       throw err;
     }
     for (const entry of entries) {
-      const index = await readListingIndex(join(listingsDir, entry, "index.json"));
+      const index = await readListingIndex(
+        join(listingsDir, entry, "index.json"),
+      );
       if (
         index &&
         index.adapter === adapter &&
         isSatisfiedListingStatus(index.status)
       ) {
-        keys.add(listingRefDedupeKey({ url: index.url, externalId: index.listingId }));
+        keys.add(
+          listingRefDedupeKey({ url: index.url, externalId: index.listingId }),
+        );
       }
     }
     return keys;

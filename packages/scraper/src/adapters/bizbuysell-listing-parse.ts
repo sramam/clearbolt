@@ -3,7 +3,10 @@ import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
 import { normalizeBizBuySellBrokerProfileUrl } from "../bizbuysell-broker-url.js";
 import { extractBizBuySellListingIdFromPathname } from "../bizbuysell-listing-url.js";
-import { encodeListingGeo, type ListingGeoEncoding } from "../listing-geo-h3.js";
+import {
+  type ListingGeoEncoding,
+  encodeListingGeo,
+} from "../listing-geo-h3.js";
 
 export const BIZBUYSELL_LISTING_PARSER_VERSION = "clearbolt-listing-v1";
 
@@ -64,7 +67,7 @@ function parseMoney(raw: string): number | undefined {
   if (!t || /not disclosed|n\/a|—|-/i.test(t)) return undefined;
   const m = t.match(/\$?([\d,]+(?:\.\d+)?)/);
   if (!m) return undefined;
-  const n = Number.parseFloat(m[1]!.replace(/,/g, ""));
+  const n = Number.parseFloat(m[1]?.replace(/,/g, ""));
   return Number.isNaN(n) ? undefined : n;
 }
 
@@ -110,7 +113,10 @@ function applyInventoryDetail(
     : undefined;
 }
 
-function applyRentDetail(into: BizBuySellListingExtract, lines: string[]): void {
+function applyRentDetail(
+  into: BizBuySellListingExtract,
+  lines: string[],
+): void {
   const raw = lines.join(" | ");
   into.rent = raw;
   into.rentAmount = parseMoney(raw);
@@ -130,13 +136,15 @@ function extractJsonLdBlocks(html: string): unknown[] {
   const blocks: unknown[] = [];
   const re =
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
+  let m: RegExpExecArray | null = re.exec(html);
+  while (m !== null) {
     try {
-      blocks.push(JSON.parse(m[1]!));
+      const jsonRaw = m[1];
+      if (jsonRaw !== undefined) blocks.push(JSON.parse(jsonRaw));
     } catch {
       /* skip */
     }
+    m = re.exec(html);
   }
   return blocks;
 }
@@ -211,7 +219,11 @@ function parseJsonLd(
                 : typeof (item as Record<string, unknown>).name === "string"
                   ? ((item as Record<string, unknown>).name as string)
                   : undefined;
-            if (label && label !== "BizBuySell" && !label.includes("Business For Sale")) {
+            if (
+              label &&
+              label !== "BizBuySell" &&
+              !label.includes("Business For Sale")
+            ) {
               breadcrumbs.push(label);
             }
           }
@@ -237,7 +249,7 @@ function parseJsonLd(
     out.state =
       localRegion.length === 2
         ? localRegion.toUpperCase()
-        : stateAbbrev(localRegion) ?? localRegion;
+        : (stateAbbrev(localRegion) ?? localRegion);
   }
   if (localCity && out.state) {
     out.location = `${localCity}, ${out.state}`;
@@ -343,14 +355,13 @@ const DETAIL_LABEL_MAP: Record<string, keyof BizBuySellListingExtract> = {
 };
 
 function normalizeLabel(label: string): string {
-  return label
-    .replace(/\s+/g, " ")
-    .replace(/:$/, "")
-    .trim()
-    .toLowerCase();
+  return label.replace(/\s+/g, " ").replace(/:$/, "").trim().toLowerCase();
 }
 
-function extractListingRows($: CheerioAPI, into: BizBuySellListingExtract): void {
+function extractListingRows(
+  $: CheerioAPI,
+  into: BizBuySellListingExtract,
+): void {
   $("p.m-listing-row, p.dt-grid-2.m-listing-row").each((_, row) => {
     const label = normalizeLabel($(row).find("span.title").first().text());
     const valueEl = $(row).find("span.normal, span.price").first();
@@ -362,7 +373,8 @@ function extractListingRows($: CheerioAPI, into: BizBuySellListingExtract): void
     else if (finKey === "revenue") into.revenue = parseMoney(value);
     else if (finKey === "cashFlow") into.cashFlow = parseMoney(value);
     else if (finKey === "ebitda") into.ebitda = parseMoney(value);
-    else if (finKey === "yearEstablished") into.yearEstablished = parseYear(value);
+    else if (finKey === "yearEstablished")
+      into.yearEstablished = parseYear(value);
   });
 }
 
@@ -382,10 +394,7 @@ function applyDetailField(
     applyRentDetail(into, lines);
     return;
   }
-  if (
-    label === "furniture, fixtures, & equipment (ff&e)" ||
-    label === "ff&e"
-  ) {
+  if (label === "furniture, fixtures, & equipment (ff&e)" || label === "ff&e") {
     applyFfeDetail(into, lines);
     return;
   }
@@ -419,7 +428,9 @@ function extractDetailDl(
   into: BizBuySellListingExtract,
 ): void {
   $(`#${dlId} dt`).each((_, dt) => {
-    const label = normalizeLabel($(dt).find("span.normal").text() || $(dt).text());
+    const label = normalizeLabel(
+      $(dt).find("span.normal").text() || $(dt).text(),
+    );
     const dd = $(dt).next("dd");
     const lines = detailDdLines($, dd);
     if (!label || lines.length === 0) return;
@@ -427,10 +438,14 @@ function extractDetailDl(
   });
 }
 
-function extractAllProfileDetailDls($: CheerioAPI, into: BizBuySellListingExtract): void {
+function extractAllProfileDetailDls(
+  $: CheerioAPI,
+  into: BizBuySellListingExtract,
+): void {
   $("dl.listingProfile_details").each((_, dl) => {
     const id = $(dl).attr("id");
-    if (id === "dlDetailedInformation" || id === "dlLocationInformation") return;
+    if (id === "dlDetailedInformation" || id === "dlLocationInformation")
+      return;
     $(dl)
       .find("dt")
       .each((_, dt) => {
@@ -481,7 +496,9 @@ export function extractBrokerPhoneFromListingHtml(
 
 function cleanBrokerName(raw: string): string | undefined {
   let name = raw;
-  const scriptCut = name.search(/\$\(function|<script|executeBefore|TrackListingAction/i);
+  const scriptCut = name.search(
+    /\$\(function|<script|executeBefore|TrackListingAction/i,
+  );
   if (scriptCut >= 0) name = name.slice(0, scriptCut);
   name = name
     .replace(/business\s+listed\s+by:?/gi, "")
@@ -530,7 +547,10 @@ function extractBroker($: CheerioAPI, into: BizBuySellListingExtract): void {
 
   const mail = scope.find('a[href^="mailto:"]').first().attr("href");
   if (mail) {
-    into.intermediaryEmail = mail.replace(/^mailto:/i, "").split("?")[0]?.trim();
+    into.intermediaryEmail = mail
+      .replace(/^mailto:/i, "")
+      .split("?")[0]
+      ?.trim();
   }
 
   const profileLink = brokerRoots
@@ -570,10 +590,12 @@ function extractBroker($: CheerioAPI, into: BizBuySellListingExtract): void {
 
 function extractImages($: CheerioAPI, into: BizBuySellListingExtract): void {
   const urls = new Set<string>();
-  $("#slider img.image, .listing-img img, img.mainPhoto-print").each((_, img) => {
-    const src = $(img).attr("src");
-    if (src?.includes("images.bizbuysell.com")) urls.add(src);
-  });
+  $("#slider img.image, .listing-img img, img.mainPhoto-print").each(
+    (_, img) => {
+      const src = $(img).attr("src");
+      if (src?.includes("images.bizbuysell.com")) urls.add(src);
+    },
+  );
   if (urls.size > 0) {
     into.imageUrls = [...urls];
   }
@@ -597,7 +619,9 @@ export function parseBizBuySellListingPage(
 ): BizBuySellListingExtract {
   const $ = cheerio.load(html);
   const scrapedAt = options?.scrapedAt ?? new Date().toISOString();
-  const listingId = extractBizBuySellListingIdFromPathname(new URL(url).pathname);
+  const listingId = extractBizBuySellListingIdFromPathname(
+    new URL(url).pathname,
+  );
 
   const fromLd = parseJsonLd(extractJsonLdBlocks(html), url);
 
@@ -624,14 +648,20 @@ export function parseBizBuySellListingPage(
   const tagline = $("span.profileAdLine").first().text().trim();
   if (tagline) extract.tagline = extract.tagline ?? tagline;
 
-  const desc = $(".businessDescription").first().text().replace(/\s+/g, " ").trim();
+  const desc = $(".businessDescription")
+    .first()
+    .text()
+    .replace(/\s+/g, " ")
+    .trim();
   if (desc) {
     extract.industryDetails = extract.industryDetails ?? desc.slice(0, 50_000);
   }
 
   extractListingRows($, extract);
   if (extract.askingPrice == null) {
-    const legacyPrice = $(".asking-price, .business-price, [class*='asking-price']")
+    const legacyPrice = $(
+      ".asking-price, .business-price, [class*='asking-price']",
+    )
       .first()
       .text();
     extract.askingPrice = parseMoney(legacyPrice);

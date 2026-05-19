@@ -1,8 +1,8 @@
 import type { Fetcher } from "./fetcher.js";
 import {
-  runLoopNetCatalogScrape,
   type RunLoopNetCatalogScrapeOptions,
   type RunLoopNetCatalogScrapeResult,
+  runLoopNetCatalogScrape,
 } from "./loopnet-catalog-scrape-pipeline.js";
 import { createRotatingBrowserFetcher } from "./rotating-proxy-fetcher.js";
 

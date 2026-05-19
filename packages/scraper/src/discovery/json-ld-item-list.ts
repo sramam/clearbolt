@@ -19,8 +19,7 @@ export function discoverListingRefsFromJsonLd(
   const urlMatches = options.urlMatches ?? (() => true);
   const normalizeUrl = options.normalizeUrl ?? ((u: string) => u);
   const externalIdFromUrl =
-    options.externalIdFromUrl ??
-    ((u: string) => u.match(/(\d{6,})/)?.[1]);
+    options.externalIdFromUrl ?? ((u: string) => u.match(/(\d{6,})/)?.[1]);
 
   const scripts = html.match(
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,

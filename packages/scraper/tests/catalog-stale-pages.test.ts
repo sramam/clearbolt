@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { ListingRef } from "@clearbolt/core";
+import { describe, expect, it } from "vitest";
 import { walkCatalogPages } from "../src/discovery/catalog-walk.js";
 import {
   countListingRefsNewOnPage,
@@ -56,7 +56,10 @@ describe("walkCatalogPages stale tail", () => {
       mergeRef: mergeListingRefByExternalId,
       fetchPage: async () => {
         const body = `<html data-page="${pageIndex}"></html>`;
-        return { body, finalUrl: `https://example.com/catalog/${pageIndex + 1}/` };
+        return {
+          body,
+          finalUrl: `https://example.com/catalog/${pageIndex + 1}/`,
+        };
       },
       discoverRefs: async () => pages[pageIndex++] ?? [],
       discoverNext: () => "https://example.com/catalog/next/",

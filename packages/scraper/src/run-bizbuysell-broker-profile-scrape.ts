@@ -1,31 +1,31 @@
 import type { ListingRef } from "@clearbolt/core";
-import { BIZBUYSELL_ADAPTER_ID } from "./adapters/bizbuysell.js";
 import {
+  type BrokerProfileExtract,
   assertBrokerProfileUrl,
   brokerProfileToRefs,
   parseBizBuySellBrokerProfilePage,
-  type BrokerProfileExtract,
 } from "./adapters/bizbuysell-broker-parse.js";
+import { BIZBUYSELL_ADAPTER_ID } from "./adapters/bizbuysell.js";
 import { isBizBuySellBrokerProfileUrl } from "./bizbuysell-broker-url.js";
-import type { Fetcher } from "./fetcher.js";
-import { HttpFetcher } from "./http-fetcher.js";
-import {
-  ingestListingRefs,
-  withCanonicalTracking,
-  type RunBizBuySellScrapeOptions,
-} from "./bizbuysell-scrape-pipeline.js";
 import {
   listingIngestWafPolicy,
   primeBizBuySellResidentialHosts,
   shouldPreferHttpIngestForBizBuySell,
   shouldUseBrowserFirstForBizBuySell,
 } from "./bizbuysell-run-policy.js";
+import {
+  type RunBizBuySellScrapeOptions,
+  ingestListingRefs,
+  withCanonicalTracking,
+} from "./bizbuysell-scrape-pipeline.js";
 import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
 import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
-import { proxySessionKeyFromEnv } from "./proxy-config.js";
-import { createRotatingHttpFetcher } from "./rotating-proxy-fetcher.js";
-import { residentialProxyConfigured } from "./proxy-config.js";
+import type { Fetcher } from "./fetcher.js";
+import { HttpFetcher } from "./http-fetcher.js";
 import type { ListingIngestStateStore } from "./listing-ingest-state.js";
+import { proxySessionKeyFromEnv } from "./proxy-config.js";
+import { residentialProxyConfigured } from "./proxy-config.js";
+import { createRotatingHttpFetcher } from "./rotating-proxy-fetcher.js";
 export type RunBizBuySellBrokerProfileScrapeOptions = Omit<
   RunBizBuySellScrapeOptions,
   "searchUrl" | "searchKeywords" | "discovery"

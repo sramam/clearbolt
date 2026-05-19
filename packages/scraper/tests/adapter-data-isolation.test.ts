@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   readCatalogRefsFile,
@@ -51,22 +51,31 @@ describe("adapter data isolation", () => {
   });
 
   it("ignores failures from other adapters when ordering refs", () => {
-    const refs = [{ url: "https://www.bizbuysell.com/business-opportunity/x/1/", externalId: "1" }];
-    const ordered = orderListingRefsForIngest(refs, {
-      version: 1,
-      adapter: "bizbuysell",
-      updatedAt: new Date().toISOString(),
-      failures: {
-        "1": {
-          adapter: "businessbroker",
-          externalId: "1",
-          url: "https://www.businessbroker.net/business-for-sale/x/1.aspx",
-          message: "wrong adapter",
-          at: new Date().toISOString(),
-          attempts: 1,
+    const refs = [
+      {
+        url: "https://www.bizbuysell.com/business-opportunity/x/1/",
+        externalId: "1",
+      },
+    ];
+    const ordered = orderListingRefsForIngest(
+      refs,
+      {
+        version: 1,
+        adapter: "bizbuysell",
+        updatedAt: new Date().toISOString(),
+        failures: {
+          "1": {
+            adapter: "businessbroker",
+            externalId: "1",
+            url: "https://www.businessbroker.net/business-for-sale/x/1.aspx",
+            message: "wrong adapter",
+            at: new Date().toISOString(),
+            attempts: 1,
+          },
         },
       },
-    }, { adapter: "bizbuysell" });
+      { adapter: "bizbuysell" },
+    );
     expect(ordered.map((r) => r.externalId)).toEqual(["1"]);
   });
 
@@ -75,7 +84,8 @@ describe("adapter data isolation", () => {
     await expect(
       writeCatalogRefsFile(join(dir, "catalog-refs", "wrong", "x.json"), {
         adapter: "bizbuysell",
-        catalogUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
+        catalogUrl:
+          "https://www.bizbuysell.com/california-businesses-for-sale/",
         refs: [],
       }),
     ).rejects.toThrow(/catalog-refs\/bizbuysell/);
@@ -94,7 +104,8 @@ describe("adapter data isolation", () => {
       JSON.stringify({
         version: 1,
         adapter: "bizbuysell",
-        catalogUrl: "https://www.bizbuysell.com/california-businesses-for-sale/",
+        catalogUrl:
+          "https://www.bizbuysell.com/california-businesses-for-sale/",
         discoveredAt: new Date().toISOString(),
         refs: [
           {

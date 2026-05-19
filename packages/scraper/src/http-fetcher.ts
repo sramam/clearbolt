@@ -1,6 +1,6 @@
-import { ProxyAgent, fetch as undiciFetch } from "undici";
 import { URL } from "node:url";
 import type { FetchRequest, RawResponse } from "@clearbolt/core";
+import { ProxyAgent, fetch as undiciFetch } from "undici";
 import type { Fetcher } from "./fetcher.js";
 import { requestUrlFollowRedirects } from "./https-get.js";
 import {

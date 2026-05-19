@@ -18,7 +18,10 @@ describe("bizquest adapter", () => {
       "utf8",
     );
     const refs: { url: string; externalId?: string }[] = [];
-    for await (const r of discoverListingRefs(html, BIZQUEST_FIXTURE_SEARCH_URL)) {
+    for await (const r of discoverListingRefs(
+      html,
+      BIZQUEST_FIXTURE_SEARCH_URL,
+    )) {
       refs.push(r);
     }
     expect(refs.length).toBeGreaterThanOrEqual(2);

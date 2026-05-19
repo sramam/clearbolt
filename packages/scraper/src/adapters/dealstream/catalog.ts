@@ -1,22 +1,22 @@
-import * as cheerio from "cheerio";
 import type { ListingRef } from "@clearbolt/core";
-import {
-  discoverNextPageUrl,
-  linkSelectorNextStrategy,
-  normalizePageUrl,
-  paginationNavNextStrategy,
-  pathIncrementStrategy,
-  relNextStrategy,
-  type PaginationStrategy,
-} from "../../discovery/pagination/index.js";
-import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
-import type { CatalogAdapter } from "../types.js";
+import * as cheerio from "cheerio";
 import {
   catalogPageNumberFromPathname,
   catalogSlugFromPathname,
   isDealStreamCatalogUrl,
   listingRefFromDealStreamUrl,
 } from "../../dealstream-listing-url.js";
+import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
+import {
+  type PaginationStrategy,
+  discoverNextPageUrl,
+  linkSelectorNextStrategy,
+  normalizePageUrl,
+  paginationNavNextStrategy,
+  pathIncrementStrategy,
+  relNextStrategy,
+} from "../../discovery/pagination/index.js";
+import type { CatalogAdapter } from "../types.js";
 
 export {
   DEALSTREAM_CALIFORNIA_CATALOG_URL,
@@ -72,7 +72,8 @@ const dealStreamPathPagination = pathIncrementStrategy({
     const page = catalogPageNumberFromPathname(pathname);
     return page >= 1 ? page : null;
   },
-  buildPageUrl: (base, pageNum) => buildDealStreamCatalogPageUrl(base.toString(), pageNum),
+  buildPageUrl: (base, pageNum) =>
+    buildDealStreamCatalogPageUrl(base.toString(), pageNum),
 });
 
 export const dealStreamCatalogPaginationStrategies: readonly PaginationStrategy[] =
@@ -92,7 +93,9 @@ function maxCatalogPageNumberInHtml(html: string, catalogSlug: string): number {
   const re = new RegExp(`${escaped}/(\\d+)/`, "gi");
   let max = 0;
   for (const m of html.matchAll(re)) {
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) continue;
+    const n = Number.parseInt(pageRaw, 10);
     if (!Number.isNaN(n) && n > max) max = n;
   }
   return max;

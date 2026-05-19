@@ -19,6 +19,6 @@ describe("bizquest listing url", () => {
       "https://www.bizquest.com/business-for-sale/pizza-franchise/BW2486214/",
     );
     expect(ref?.externalId).toBe("BW2486214");
-    expect(isBizQuestListingUrl(ref!.url)).toBe(true);
+    expect(isBizQuestListingUrl(ref?.url)).toBe(true);
   });
 });

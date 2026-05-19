@@ -18,7 +18,9 @@ describe("proxy-endpoints-file", () => {
   });
 
   it("parses host:port:user:pass lines", () => {
-    const ep = parseProxyEndpointLine("us.decodo.com:10001:user:pass:with:colons");
+    const ep = parseProxyEndpointLine(
+      "us.decodo.com:10001:user:pass:with:colons",
+    );
     expect(ep?.server).toBe("http://us.decodo.com:10001");
     expect(ep?.password).toBe("pass:with:colons");
   });

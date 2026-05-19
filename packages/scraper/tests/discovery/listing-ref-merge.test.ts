@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mergeListingRefByExternalId } from "../../src/discovery/listing-ref-merge.js";
 import {
   isBizBuySellListingUrl,
   listingRefFromBizBuySellUrl,
 } from "../../src/bizbuysell-listing-url.js";
+import { mergeListingRefByExternalId } from "../../src/discovery/listing-ref-merge.js";
 
 describe("listing-ref-merge", () => {
   it("merges www and mobile URLs for the same listing id", () => {

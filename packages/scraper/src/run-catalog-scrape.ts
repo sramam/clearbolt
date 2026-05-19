@@ -6,16 +6,17 @@ import type {
   ProcessedArtifactStore,
 } from "@clearbolt/storage";
 import type { ResumeCatalogDiscovery } from "./bizbuysell-catalog-scrape-pipeline.js";
+import { shouldUseBrowserFirstForBizBuySell } from "./bizbuysell-run-policy.js";
 import {
-  catalogSourceForUrl,
   type CatalogSourceId,
+  catalogSourceForUrl,
 } from "./catalog-source-registry.js";
+import type { ListingIngestStateStore } from "./listing-ingest-state.js";
 import { runBizBuySellCatalogScrapeWithBrowser } from "./run-bizbuysell-catalog-scrape.js";
 import { runBusinessBrokerCatalogScrape } from "./run-businessbroker-catalog-scrape.js";
 import { runBusinessesForSaleCatalogScrapeWithBrowser } from "./run-businessesforsale-catalog-scrape.js";
 import { runDealStreamCatalogScrapeWithBrowser } from "./run-dealstream-catalog-scrape.js";
 import { runLoopNetCatalogScrapeWithBrowser } from "./run-loopnet-catalog-scrape.js";
-import { shouldUseBrowserFirstForBizBuySell } from "./bizbuysell-run-policy.js";
 
 export type CatalogScrapeProgress = {
   phase: "discovery" | "fetch" | "process" | "ingest" | "dedup";
@@ -29,7 +30,7 @@ export type CatalogScrapeRunOptions = {
   evidence: EvidenceStore;
   metadata: MetadataStore;
   processedArtifacts: ProcessedArtifactStore;
-  listingIngestState?: import("./listing-ingest-state.js").ListingIngestStateStore;
+  listingIngestState?: ListingIngestStateStore;
   ingestFailuresPath?: string;
   prioritizeIngestFailures?: boolean;
   discoverOnly?: boolean;

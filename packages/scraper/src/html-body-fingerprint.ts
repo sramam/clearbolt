@@ -16,7 +16,10 @@ export function htmlListingBodyText(html: string): string {
 }
 
 /** Plain text for LLM prompts (preserves case; optional max length). */
-export function htmlListingBodyPlainText(html: string, maxLen?: number): string {
+export function htmlListingBodyPlainText(
+  html: string,
+  maxLen?: number,
+): string {
   const text = stripHtmlToPlainText(html);
   if (maxLen !== undefined && text.length > maxLen) {
     return text.slice(0, maxLen);

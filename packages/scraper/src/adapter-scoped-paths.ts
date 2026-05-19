@@ -10,7 +10,11 @@ export function ingestFailuresPath(
   dataRootDir: string,
   adapter: string,
 ): string {
-  return join(dataRootDir, "ingest-failures", `${normalizeAdapterId(adapter)}.json`);
+  return join(
+    dataRootDir,
+    "ingest-failures",
+    `${normalizeAdapterId(adapter)}.json`,
+  );
 }
 
 export function listingIngestStateDir(

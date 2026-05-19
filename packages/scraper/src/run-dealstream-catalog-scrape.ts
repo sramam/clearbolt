@@ -1,9 +1,9 @@
-import type { Fetcher } from "./fetcher.js";
 import {
-  runDealStreamCatalogScrape,
   type RunDealStreamCatalogScrapeOptions,
   type RunDealStreamCatalogScrapeResult,
+  runDealStreamCatalogScrape,
 } from "./dealstream-catalog-scrape-pipeline.js";
+import type { Fetcher } from "./fetcher.js";
 import { createRotatingBrowserFetcher } from "./rotating-proxy-fetcher.js";
 
 export type {

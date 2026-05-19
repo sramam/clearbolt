@@ -39,7 +39,9 @@ export async function serperSearch(
 ): Promise<SerperSearchResponse> {
   const apiKey = options.apiKey ?? serperApiKeyFromEnv();
   if (!apiKey) {
-    throw new Error("SERP_DEV_API_KEY or SERPER_API_KEY is required for Serper search");
+    throw new Error(
+      "SERP_DEV_API_KEY or SERPER_API_KEY is required for Serper search",
+    );
   }
   const q = query.trim();
   if (!q) throw new Error("Serper query is required");

@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { ListingRef } from "@clearbolt/core";
 import {
@@ -163,7 +163,11 @@ export async function listFailedListingRefsFromDisk(
   adapter: string,
 ): Promise<ListingRef[]> {
   const refs: ListingRef[] = [];
-  const base = join(dataRootDir, "listing-ingest-state", normalizeAdapterId(adapter));
+  const base = join(
+    dataRootDir,
+    "listing-ingest-state",
+    normalizeAdapterId(adapter),
+  );
   let entries: string[];
   try {
     entries = await readdir(base);
@@ -228,7 +232,9 @@ export function orderListingRefsForIngest(
   const adapterFilter = options?.adapter ?? collection.adapter;
   if (Object.keys(failures).length === 0) return refs;
 
-  const failureForRef = (id: string | undefined): IngestFailureEntry | undefined => {
+  const failureForRef = (
+    id: string | undefined,
+  ): IngestFailureEntry | undefined => {
     if (!id) return undefined;
     const entry = failures[id];
     if (!entry) return undefined;

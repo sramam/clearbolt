@@ -25,7 +25,9 @@ function isBizQuestListingPathname(pathname: string): boolean {
 export function parseBizQuestSearchPageNumber(pathname: string): number {
   const m = pathname.match(/\/page-(\d+)\/?$/i);
   if (!m) return 1;
-  const n = Number.parseInt(m[1]!, 10);
+  const pageRaw = m[1];
+  if (pageRaw === undefined) return 1;
+  const n = Number.parseInt(pageRaw, 10);
   return Number.isNaN(n) || n < 1 ? 1 : n;
 }
 

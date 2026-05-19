@@ -2,7 +2,9 @@ import { brokerRefsPath } from "./adapter-scoped-paths.js";
 
 export function directoryPathSlugFromUrl(directoryUrl: string): string {
   try {
-    return new URL(directoryUrl).pathname.replace(/^\/+|\/+$/g, "") || "brokers";
+    return (
+      new URL(directoryUrl).pathname.replace(/^\/+|\/+$/g, "") || "brokers"
+    );
   } catch {
     return "brokers";
   }

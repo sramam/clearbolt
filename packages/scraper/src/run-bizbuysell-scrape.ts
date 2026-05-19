@@ -1,9 +1,9 @@
-import type { Fetcher } from "./fetcher.js";
 import {
-  runBizBuySellScrape as runPipeline,
   type RunBizBuySellScrapeOptions as PipelineOptions,
   type RunBizBuySellScrapeResult,
+  runBizBuySellScrape as runPipeline,
 } from "./bizbuysell-scrape-pipeline.js";
+import type { Fetcher } from "./fetcher.js";
 
 export type {
   RunBizBuySellScrapeOptions,

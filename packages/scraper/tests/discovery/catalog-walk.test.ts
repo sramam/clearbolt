@@ -36,8 +36,8 @@ describe("walkCatalogPages", () => {
         "https://www.bizbuysell.com/california-businesses-for-sale/",
     });
     expect(
-      messages.some((m) =>
-        /Page 1:.* in \d/.test(m) && /\(fetch .+, parse .+\)/.test(m),
+      messages.some(
+        (m) => /Page 1:.* in \d/.test(m) && /\(fetch .+, parse .+\)/.test(m),
       ),
     ).toBe(true);
   });

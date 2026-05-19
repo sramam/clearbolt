@@ -7,15 +7,15 @@ import {
   normalizeBusinessesForSaleCatalogUrlForCompare,
   recoverBusinessesForSaleCatalogPageUrl,
 } from "./adapters/businessesforsale/catalog.js";
+import type { ResumeCatalogDiscovery } from "./bizbuysell-catalog-scrape-pipeline.js";
+import { catalogPageGapMs } from "./bizbuysell-run-policy.js";
 import { writeCatalogRefsFile } from "./catalog-refs-file.js";
 import { walkCatalogPages } from "./discovery/catalog-walk.js";
 import { mergeListingRefByExternalId } from "./discovery/listing-ref-merge.js";
 import type { Fetcher } from "./fetcher.js";
 import { HttpFetcher } from "./http-fetcher.js";
-import { catalogPageGapMs } from "./bizbuysell-run-policy.js";
 import { catalogStalePagesToStop } from "./listing-ingest-state.js";
 import { throttleHost } from "./throttle.js";
-import type { ResumeCatalogDiscovery } from "./bizbuysell-catalog-scrape-pipeline.js";
 
 export type { ResumeCatalogDiscovery };
 
@@ -70,7 +70,9 @@ async function collectRefsFromCatalog(
 }> {
   const adapter = businessesForSaleCatalogAdapter;
   const pageGapMs = catalogPageGapMs();
-  const stalePagesToStop = options.refreshCatalog ? 0 : catalogStalePagesToStop();
+  const stalePagesToStop = options.refreshCatalog
+    ? 0
+    : catalogStalePagesToStop();
   const resume = options.resumeCatalogDiscovery;
   const checkpointPath = options.catalogRefsCheckpointPath;
 
@@ -155,7 +157,7 @@ export async function runBusinessesForSaleCatalogScrape(
   const skipCatalogWalk =
     options.listingRefs?.length && !options.resumeCatalogDiscovery;
   if (skipCatalogWalk) {
-    refs = options.listingRefs!;
+    refs = options.listingRefs ?? [];
     pagesFetched = 0;
     lastPageUrl = catalogUrl;
     lastHtml = "";

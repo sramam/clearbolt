@@ -10,8 +10,10 @@ import type {
   MetadataStore,
   ProcessedArtifactStore,
 } from "@clearbolt/storage";
-import type { Fetcher } from "./fetcher.js";
-import { HttpFetcher } from "./http-fetcher.js";
+import {
+  assertAdapterScopedPutMeta,
+  assertEvidenceRefMatchesAdapter,
+} from "./adapter-scoped-paths.js";
 import {
   BIZQUEST_ADAPTER_ID,
   buildSourceRecord,
@@ -20,21 +22,19 @@ import {
   parseListingPage,
   parseSearchUrl,
 } from "./adapters/bizquest.js";
-import { buildBizQuestFixtureFetcher } from "./fixtures/build-bizquest-fixture-fetcher.js";
 import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
 import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
+import type { Fetcher } from "./fetcher.js";
+import { buildBizQuestFixtureFetcher } from "./fixtures/build-bizquest-fixture-fetcher.js";
 import { htmlListingBodyFingerprint } from "./html-body-fingerprint.js";
-import { persistListingProcessedArtifacts } from "./listing-artifacts.js";
-import { proxySessionKeyFromEnv } from "./proxy-config.js";
-import {
-  assertAdapterScopedPutMeta,
-  assertEvidenceRefMatchesAdapter,
-} from "./adapter-scoped-paths.js";
+import { HttpFetcher } from "./http-fetcher.js";
 import {
   clearIngestFailure,
   recordIngestFailure,
 } from "./ingest-failure-collection.js";
+import { persistListingProcessedArtifacts } from "./listing-artifacts.js";
 import type { ListingIngestStateStore } from "./listing-ingest-state.js";
+import { proxySessionKeyFromEnv } from "./proxy-config.js";
 
 export interface RunBizQuestScrapeOptions {
   evidence: EvidenceStore;
@@ -236,7 +236,8 @@ export async function runBizQuestScrape(
 
   let listingsIngested = 0;
   for (let i = 0; i < refs.length; i++) {
-    const ref = refs[i]!;
+    const ref = refs[i];
+    if (ref === undefined) continue;
     const ingested = await ingestOneListingWithFailureLog(
       { ...options, onIngested: trackIngested },
       fetcher,

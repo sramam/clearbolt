@@ -12,6 +12,4 @@ export {
   BUSINESSBROKER_CALIFORNIA_CATALOG_URL,
 } from "../businessbroker-listing-url.js";
 export { buildSourceRecord } from "./bizbuysell.js";
-export {
-  parseListingPage,
-} from "./businessbroker-listing-adapter.js";
+export { parseListingPage } from "./businessbroker-listing-adapter.js";

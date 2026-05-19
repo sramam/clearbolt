@@ -50,7 +50,11 @@ describe("parseBizBuySellListingPage", () => {
 
   it("parses detailed information, location, and broker block", async () => {
     const html = await readFile(
-      join(dirname(fileURLToPath(import.meta.url)), "fixtures", "bizbuysell-listing-details-snippet.html"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "fixtures",
+        "bizbuysell-listing-details-snippet.html",
+      ),
       "utf8",
     );
     const p = parseBizBuySellListingPage(
@@ -72,7 +76,11 @@ describe("parseBizBuySellListingPage", () => {
 
   it("parses minimal fixture", async () => {
     const html = await readFile(
-      join(dirname(fileURLToPath(import.meta.url)), "fixtures", "bizbuysell-listing-1234567.html"),
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "fixtures",
+        "bizbuysell-listing-1234567.html",
+      ),
       "utf8",
     );
     const p = parseBizBuySellListingPage(

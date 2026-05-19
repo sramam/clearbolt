@@ -119,7 +119,8 @@ export function isPathAllowed(
   let bestAllow = -1;
   let bestDisallow = -1;
   for (const rule of group.allow) {
-    if (ruleMatches(pathname, rule)) bestAllow = Math.max(bestAllow, rule.length);
+    if (ruleMatches(pathname, rule))
+      bestAllow = Math.max(bestAllow, rule.length);
   }
   for (const rule of group.disallow) {
     if (ruleMatches(pathname, rule)) {

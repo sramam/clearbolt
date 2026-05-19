@@ -19,11 +19,10 @@ describe("bizBuySellListingFetchUrl", () => {
   });
 
   it("leaves URL unchanged without proxy/browser-first", () => {
-    delete process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST;
-    delete process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE;
-    delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
-    const url =
-      "https://www.bizbuysell.com/business-opportunity/foo/1234567/";
+    process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST = undefined;
+    process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE = undefined;
+    process.env.CLEARBOLT_PROXY_RESIDENTIAL = undefined;
+    const url = "https://www.bizbuysell.com/business-opportunity/foo/1234567/";
     expect(bizBuySellListingFetchUrl(url)).toBe(url);
   });
 
@@ -31,8 +30,7 @@ describe("bizBuySellListingFetchUrl", () => {
     process.env.CLEARBOLT_BIZBUYSELL_BROWSER_FIRST = "1";
     process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE = "proxy-endpoints.local.txt";
     process.env.CLEARBOLT_BIZBUYSELL_LISTING_PREFER_MOBILE = "0";
-    const url =
-      "https://www.bizbuysell.com/business-opportunity/foo/1234567/";
+    const url = "https://www.bizbuysell.com/business-opportunity/foo/1234567/";
     expect(bizBuySellListingFetchUrl(url)).toBe(url);
   });
 });

@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   clearIngestFailure,
@@ -64,7 +64,7 @@ describe("ingest failure collection", () => {
         "3": {
           adapter: "bizbuysell",
           externalId: "3",
-          url: refs[2]!.url,
+          url: refs[2]?.url,
           message: "waf",
           at: new Date().toISOString(),
           attempts: 1,
@@ -86,7 +86,7 @@ describe("ingest failure collection", () => {
         "2": {
           adapter: "bizbuysell",
           externalId: "2",
-          url: refs[1]!.url,
+          url: refs[1]?.url,
           message: "Akamai hard block (not retriable on this session)",
           at: new Date().toISOString(),
           attempts: 2,

@@ -1,14 +1,14 @@
 import type {
   ParsedListingFields,
-  ProcessedArtifacts,
   ProcessedArtifactKind,
+  ProcessedArtifacts,
 } from "@clearbolt/core";
-import type { BizBuySellListingExtract } from "./adapters/bizbuysell-listing-parse.js";
-import { BIZBUYSELL_LISTING_PARSER_VERSION } from "./adapters/bizbuysell-listing-parse.js";
 import type {
   ProcessedArtifactStore,
   ProcessedPutMeta,
 } from "@clearbolt/storage";
+import type { BizBuySellListingExtract } from "./adapters/bizbuysell-listing-parse.js";
+import { BIZBUYSELL_LISTING_PARSER_VERSION } from "./adapters/bizbuysell-listing-parse.js";
 import { htmlListingBodyText } from "./html-body-fingerprint.js";
 
 export const LISTING_PARSER_VERSION = BIZBUYSELL_LISTING_PARSER_VERSION;
@@ -18,7 +18,9 @@ export interface ListingArtifactInput {
   sourceUrl: string;
   rawEvidenceSha256: string;
   html: string;
-  parsed: (ParsedListingFields & { externalId?: string }) | BizBuySellListingExtract;
+  parsed:
+    | (ParsedListingFields & { externalId?: string })
+    | BizBuySellListingExtract;
   bodyEmbedding?: number[];
   bodyEmbeddingModel?: string;
 }

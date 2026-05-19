@@ -2,10 +2,10 @@ import { isBizBuySellCatalogUrl } from "./adapters/bizbuysell-catalog.js";
 import { isBusinessBrokerCatalogUrl } from "./adapters/businessbroker/catalog.js";
 import { isDealStreamCatalogUrl } from "./adapters/dealstream/catalog.js";
 import { isLoopNetCatalogUrl } from "./adapters/loopnet/catalog.js";
-import { catalogAdapterFromUrl } from "./catalog-adapter-from-url.js";
+import { isBizBuySellListingUrl } from "./bizbuysell-listing-url.js";
 import { isBizQuestListingUrl } from "./bizquest-listing-url.js";
 import { isBizQuestSearchUrl } from "./bizquest-search-url.js";
-import { isBizBuySellListingUrl } from "./bizbuysell-listing-url.js";
+import { catalogAdapterFromUrl } from "./catalog-adapter-from-url.js";
 
 /** Adapter id for a search URL, listing URL, or catalog index URL. */
 export function scrapeAdapterFromUrl(url: string): string {

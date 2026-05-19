@@ -1,16 +1,16 @@
 import {
-  discoverBizBuySellBrokerRefsFromHtml,
   type BrokerDirectoryRef,
+  discoverBizBuySellBrokerRefsFromHtml,
 } from "../../broker-directory-ref.js";
 import {
+  type PaginationStrategy,
   discoverNextPageUrl,
   linkSelectorNextStrategy,
   normalizePageUrl,
-  pathIncrementStrategy,
   paginationNavNextStrategy,
+  pathIncrementStrategy,
   queryPageStrategy,
   relNextStrategy,
-  type PaginationStrategy,
 } from "../../discovery/pagination/index.js";
 
 export const BIZBUYSELL_CALIFORNIA_BROKER_DIRECTORY_URL =
@@ -31,22 +31,32 @@ export function isBizBuySellBrokerDirectoryUrl(url: string): boolean {
   }
 }
 
-export function brokerDirectorySlugFromPathname(pathname: string): string | null {
+export function brokerDirectorySlugFromPathname(
+  pathname: string,
+): string | null {
   const m = pathname.match(/^(\/business-brokers\/[^/]+)(?:\/\d+)?\/?$/i);
   return m?.[1] ?? null;
 }
 
-export function brokerDirectoryPageNumberFromPathname(pathname: string): number {
+export function brokerDirectoryPageNumberFromPathname(
+  pathname: string,
+): number {
   const m = pathname.match(PAGE_IN_PATH);
   if (m) {
-    const n = Number.parseInt(m[1]!, 10);
-    if (!Number.isNaN(n)) return n;
+    const pageRaw = m[1];
+    if (pageRaw !== undefined) {
+      const n = Number.parseInt(pageRaw, 10);
+      if (!Number.isNaN(n)) return n;
+    }
   }
   if (/^\/business-brokers\/[^/]+\/?$/i.test(pathname)) return 1;
   return 1;
 }
 
-export function buildBrokerDirectoryPageUrl(base: URL, pageNum: number): string {
+export function buildBrokerDirectoryPageUrl(
+  base: URL,
+  pageNum: number,
+): string {
   const slug = brokerDirectorySlugFromPathname(base.pathname);
   if (!slug) return normalizePageUrl(base.toString());
   const u = new URL(base);
@@ -79,7 +89,9 @@ const brokerDirPathPagination = pathIncrementStrategy({
   pageFromLinkPathname: (pathname) => {
     const m = pathname.match(PAGE_IN_PATH);
     if (!m) return null;
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) return null;
+    const n = Number.parseInt(pageRaw, 10);
     return Number.isNaN(n) ? null : n;
   },
   buildPageUrl: buildBrokerDirectoryPageUrl,

@@ -41,9 +41,9 @@ export function parseProxyEndpointLine(
 
   const parts = trimmed.split(":");
   if (parts.length < 4) return null;
-  const host = parts[0]!;
-  const port = parts[1]!;
-  const username = parts[2]!;
+  const host = parts[0];
+  const port = parts[1];
+  const username = parts[2];
   const password = parts.slice(3).join(":");
   if (!host || !port || !username) return null;
   return {
@@ -85,16 +85,21 @@ export function pickProxyEndpointFromList(
   sessionKey?: string,
 ): ProxyEndpointCredentials | null {
   if (endpoints.length === 0) return null;
-  if (endpoints.length === 1) return endpoints[0]!;
+  if (endpoints.length === 1) return endpoints[0] ?? null;
   const workerMatch = sessionKey?.match(/-w(\d+)-/);
   if (workerMatch) {
-    const idx = Number.parseInt(workerMatch[1]!, 10);
-    if (!Number.isNaN(idx)) return endpoints[idx % endpoints.length]!;
+    const workerIdx = workerMatch[1];
+    if (workerIdx !== undefined) {
+      const idx = Number.parseInt(workerIdx, 10);
+      if (!Number.isNaN(idx)) {
+        return endpoints[idx % endpoints.length] ?? null;
+      }
+    }
   }
-  if (!sessionKey) return endpoints[0]!;
+  if (!sessionKey) return endpoints[0] ?? null;
   let h = 0;
   for (let i = 0; i < sessionKey.length; i++) {
     h = (h + sessionKey.charCodeAt(i)) % endpoints.length;
   }
-  return endpoints[h]!;
+  return endpoints[h] ?? null;
 }

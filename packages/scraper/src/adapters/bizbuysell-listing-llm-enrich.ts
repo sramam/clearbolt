@@ -1,10 +1,10 @@
 import { resolveFreeDedupOpenRouterModel } from "@clearbolt/dedup";
-import type { BizBuySellListingExtract } from "./bizbuysell-listing-parse.js";
 import { htmlListingBodyPlainText } from "../html-body-fingerprint.js";
 import {
-  ListingLlmEnrichPatchSchema,
   type ListingLlmEnrichPatch,
+  ListingLlmEnrichPatchSchema,
 } from "../listing-llm-enrich-schema.js";
+import type { BizBuySellListingExtract } from "./bizbuysell-listing-parse.js";
 
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -13,7 +13,9 @@ export function llmListingEnrichEnabled(): boolean {
 }
 
 /** True when deterministic parse left category or sale-structure fields blank. */
-export function listingHasLlmEnrichGaps(extract: BizBuySellListingExtract): boolean {
+export function listingHasLlmEnrichGaps(
+  extract: BizBuySellListingExtract,
+): boolean {
   const noCategory =
     !extract.category?.trim() &&
     !(extract.categories && extract.categories.length > 0);
@@ -22,10 +24,15 @@ export function listingHasLlmEnrichGaps(extract: BizBuySellListingExtract): bool
     Boolean(extract.inventory?.trim()) &&
     extract.inventoryIncludedInAskingPrice === undefined;
   const ffeAmbiguous =
-    Boolean(extract.ffe?.trim()) && extract.ffeIncludedInAskingPrice === undefined;
+    Boolean(extract.ffe?.trim()) &&
+    extract.ffeIncludedInAskingPrice === undefined;
   const noIndustry = !extract.industry?.trim();
   return (
-    noCategory || noEmployees || inventoryAmbiguous || ffeAmbiguous || noIndustry
+    noCategory ||
+    noEmployees ||
+    inventoryAmbiguous ||
+    ffeAmbiguous ||
+    noIndustry
   );
 }
 
@@ -36,7 +43,10 @@ function extractJsonObject(text: string): unknown {
   } catch {
     const m = t.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("no JSON object in LLM response");
-    return JSON.parse(m[0]!);
+    const jsonRaw = m[0];
+    if (jsonRaw === undefined)
+      throw new Error("no JSON object in LLM response");
+    return JSON.parse(jsonRaw);
   }
 }
 
@@ -68,10 +78,7 @@ export function mergeListingLlmPatch(
   };
 
   setIfBlank("category", patch.category);
-  if (
-    patch.categories?.length &&
-    (overwrite || !extract.categories?.length)
-  ) {
+  if (patch.categories?.length && (overwrite || !extract.categories?.length)) {
     extract.categories = patch.categories;
     if (!extract.finalCategory || overwrite) {
       extract.finalCategory =
@@ -89,7 +96,8 @@ export function mergeListingLlmPatch(
     patch.inventoryIncludedInAskingPrice !== undefined &&
     (overwrite || extract.inventoryIncludedInAskingPrice === undefined)
   ) {
-    extract.inventoryIncludedInAskingPrice = patch.inventoryIncludedInAskingPrice;
+    extract.inventoryIncludedInAskingPrice =
+      patch.inventoryIncludedInAskingPrice;
   }
   if (
     patch.ffeIncludedInAskingPrice !== undefined &&
@@ -215,7 +223,10 @@ export async function enrichListingWithLlm(
     if (!parsed.success) return false;
 
     mergeListingLlmPatch(extract, parsed.data, { overwrite });
-    extract.enrichSources = [...(extract.enrichSources ?? []), "llm-openrouter"];
+    extract.enrichSources = [
+      ...(extract.enrichSources ?? []),
+      "llm-openrouter",
+    ];
     return true;
   } catch {
     return false;

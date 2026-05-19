@@ -75,9 +75,7 @@ export async function beforeCrawlFetch(
     if (!isUrlAllowedByRobots(url, parsed, ua)) {
       throw new RobotsDisallowedError(url, host);
     }
-    const robotsDelay = parsed
-      ? crawlDelayMsFromRobots(parsed, ua)
-      : undefined;
+    const robotsDelay = parsed ? crawlDelayMsFromRobots(parsed, ua) : undefined;
     if (robotsDelay != null) delayMs = Math.max(delayMs, robotsDelay);
   }
 

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  RobotsDisallowedError,
-  beforeCrawlFetch,
-} from "../src/crawl-gate.js";
+import { RobotsDisallowedError, beforeCrawlFetch } from "../src/crawl-gate.js";
 import { clearRobotsCacheForTests } from "../src/robots-policy.js";
 
 describe("beforeCrawlFetch", () => {
@@ -13,8 +10,7 @@ describe("beforeCrawlFetch", () => {
       beforeCrawlFetch(url, {
         skipRobots: false,
         minGapMs: 0,
-        fetchRobots: async () =>
-          "User-agent: *\nDisallow: /forbidden\n",
+        fetchRobots: async () => "User-agent: *\nDisallow: /forbidden\n",
       }),
     ).rejects.toBeInstanceOf(RobotsDisallowedError);
   });

@@ -107,8 +107,7 @@ export async function writeCatalogRefsFile(
   payload: WriteCatalogRefsPayload,
 ): Promise<void> {
   const complete = payload.complete ?? true;
-  const adapter =
-    payload.adapter ?? catalogAdapterFromUrl(payload.catalogUrl);
+  const adapter = payload.adapter ?? catalogAdapterFromUrl(payload.catalogUrl);
   assertCatalogRefsWritePath(filePath, adapter);
   const body: CatalogRefsFile = {
     version: CATALOG_REFS_FILE_VERSION,

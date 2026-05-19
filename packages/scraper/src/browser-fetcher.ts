@@ -1,22 +1,22 @@
 import type { FetchRequest, RawResponse } from "@clearbolt/core";
-import type { Fetcher } from "./fetcher.js";
 import {
   isBizBuySellCatalogUrl,
   isBizBuySellListingUrl,
 } from "./bizbuysell-listing-url.js";
+import { primeBizBuySellResidentialHosts } from "./bizbuysell-run-policy.js";
 import {
   installBrowserResourceBlocking,
   preferBundledChromiumForProxy,
 } from "./browser-resource-block.js";
 import { listingLinkSelectorForUrl } from "./catalog-listing-link-selectors.js";
-import { isHardAkamaiDenial } from "./waf-retry-policy.js";
-import { primeBizBuySellResidentialHosts } from "./bizbuysell-run-policy.js";
+import type { Fetcher } from "./fetcher.js";
 import {
+  type ProxyTier,
   markHostUseResidential,
   playwrightProxyOptions,
   proxyTierForHost,
-  type ProxyTier,
 } from "./proxy-config.js";
+import { isHardAkamaiDenial } from "./waf-retry-policy.js";
 
 const WAF_EXTRA_WAIT_MS = Number.parseInt(
   process.env.CLEARBOLT_BROWSER_WAF_WAIT_MS ?? "8000",
@@ -46,7 +46,7 @@ const BROWSER_USER_AGENT =
 
 /** ngx-pagination often renders after listing cards (needed for discoverNext). */
 const CATALOG_PAGINATION_SELECTOR =
-  '.ngx-pagination a[href], a.bbsPager_next, li.pagination-next a[href]';
+  ".ngx-pagination a[href], a.bbsPager_next, li.pagination-next a[href]";
 
 /** Sentinel response when the headed Playwright window is closed mid-fetch. */
 function makeBrowserClosedResponse(url: string): RawResponse {
@@ -88,11 +88,7 @@ async function maybeDumpEmptyPage(args: {
     })();
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const base = path.join(root, `${host}-${args.driver}-${stamp}`);
-    await writeFile(
-      `${base}.html`,
-      args.body,
-      "utf8",
-    );
+    await writeFile(`${base}.html`, args.body, "utf8");
     await writeFile(
       `${base}.meta.json`,
       JSON.stringify(
@@ -102,7 +98,9 @@ async function maybeDumpEmptyPage(args: {
           status: args.status,
           driver: args.driver,
           bodyLength: args.body.length,
-          titleMatch: /<title[^>]*>([^<]+)<\/title>/i.exec(args.body)?.[1]?.trim() ?? null,
+          titleMatch:
+            /<title[^>]*>([^<]+)<\/title>/i.exec(args.body)?.[1]?.trim() ??
+            null,
           firstChars: args.body.slice(0, 600),
           akamaiHints:
             /access denied|akamai|bm-verify|reference id|pardon our interruption/i.test(
@@ -267,9 +265,7 @@ function envHeadlessOverride(): boolean | undefined {
 function patchrightProfileDir(): string {
   const explicit = process.env.CLEARBOLT_BROWSER_PROFILE_DIR?.trim();
   if (explicit) return explicit;
-  const root =
-    process.env.DATA_DIR?.trim() ||
-    `${process.cwd()}/data`;
+  const root = process.env.DATA_DIR?.trim() || `${process.cwd()}/data`;
   const slotRaw =
     process.env.CLEARBOLT_BROWSER_PROFILE_SLOT?.trim() ||
     process.env.CLEARBOLT_PROXY_SESSION_ID?.trim() ||
@@ -278,7 +274,7 @@ function patchrightProfileDir(): string {
   return `${root}/browser-profiles/patchright-${slot}`;
 }
 
-type PlaywrightChromium = (typeof import("playwright"))["chromium"];
+type PlaywrightChromium = typeof import("playwright")["chromium"];
 
 type PersistentContext = Awaited<
   ReturnType<PlaywrightChromium["launchPersistentContext"]>
@@ -354,10 +350,9 @@ async function launchPatchrightContext(args: {
      * stays a true optional dep — no type/install required to build.
      */
     const specifier = "patchright";
-    const dynImport = new Function(
-      "s",
-      "return import(s);",
-    ) as (s: string) => Promise<unknown>;
+    const dynImport = new Function("s", "return import(s);") as (
+      s: string,
+    ) => Promise<unknown>;
     mod = (await dynImport(specifier)) as typeof import("playwright");
   } catch {
     return null;
@@ -386,9 +381,7 @@ async function launchPatchrightContext(args: {
   scraperLog(`patchright persistent profile dir: ${profileDir}`);
   const context = (await mod.chromium.launchPersistentContext(
     profileDir,
-    launchOpts as Parameters<
-      typeof mod.chromium.launchPersistentContext
-    >[1],
+    launchOpts as Parameters<typeof mod.chromium.launchPersistentContext>[1],
   )) as PersistentContext;
   return {
     context,
@@ -418,7 +411,8 @@ export async function openBrowserSession(
     const tier = proxyTierForHost(hintHost, options.sessionKey);
     const proxy = playwrightProxyOptions(tier, options.sessionKey);
     const explicitHeadless = options.headless ?? envHeadlessOverride();
-    const block3p = process.env.CLEARBOLT_BROWSER_BLOCK_THIRD_PARTY?.trim() !== "0";
+    const block3p =
+      process.env.CLEARBOLT_BROWSER_BLOCK_THIRD_PARTY?.trim() !== "0";
 
     let context: Awaited<
       ReturnType<typeof import("playwright").chromium.launchPersistentContext>
@@ -506,14 +500,19 @@ export async function openBrowserSession(
               );
             }
           }
-          if (isBizBuySellCatalogUrl(req.url) && CATALOG_PAGINATION_WAIT_MS > 0) {
+          if (
+            isBizBuySellCatalogUrl(req.url) &&
+            CATALOG_PAGINATION_WAIT_MS > 0
+          ) {
             try {
               await page.waitForSelector(CATALOG_PAGINATION_SELECTOR, {
                 timeout: CATALOG_PAGINATION_WAIT_MS,
               });
               scraperLog("catalog pagination visible");
             } catch {
-              scraperLog("pagination selector timed out (will try HTML inference)");
+              scraperLog(
+                "pagination selector timed out (will try HTML inference)",
+              );
             }
           }
           const wafWaitMs = listingDetail
@@ -524,7 +523,8 @@ export async function openBrowserSession(
             try {
               await page.waitForTimeout(wafWaitMs);
             } catch (waitErr) {
-              const m = waitErr instanceof Error ? waitErr.message : String(waitErr);
+              const m =
+                waitErr instanceof Error ? waitErr.message : String(waitErr);
               if (isBrowserClosedError(m)) {
                 return makeBrowserClosedResponse(req.url);
               }
@@ -537,7 +537,9 @@ export async function openBrowserSession(
             body = await page.content();
           } catch (contentErr) {
             const m =
-              contentErr instanceof Error ? contentErr.message : String(contentErr);
+              contentErr instanceof Error
+                ? contentErr.message
+                : String(contentErr);
             if (isBrowserClosedError(m)) {
               return makeBrowserClosedResponse(req.url);
             }
@@ -596,7 +598,7 @@ export async function openBrowserSession(
                 .map((s) => {
                   const m = /href\*?=["']([^"']+)["']/.exec(s);
                   return m
-                    ? m[1]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+                    ? m[1]?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
                     : null;
                 })
                 .filter((s): s is string => !!s)

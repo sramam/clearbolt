@@ -1,14 +1,14 @@
 import {
-  runBizBuySellBrokerProfileScrape,
-  type RunBizBuySellBrokerProfileScrapeOptions,
-  type RunBizBuySellBrokerProfileScrapeResult,
-} from "./run-bizbuysell-broker-profile-scrape.js";
-import {
   primeBizBuySellResidentialHosts,
   shouldUseBrowserFirstForBizBuySell,
 } from "./bizbuysell-run-policy.js";
 import type { Fetcher } from "./fetcher.js";
 import { createRotatingBrowserFetcher } from "./rotating-proxy-fetcher.js";
+import {
+  type RunBizBuySellBrokerProfileScrapeOptions,
+  type RunBizBuySellBrokerProfileScrapeResult,
+  runBizBuySellBrokerProfileScrape,
+} from "./run-bizbuysell-broker-profile-scrape.js";
 
 export type {
   RunBizBuySellBrokerProfileScrapeOptions,

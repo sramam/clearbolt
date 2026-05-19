@@ -48,6 +48,6 @@ describe("bizbuysell serper discovery", () => {
     expect(serperQuery).toContain("site:bizbuysell.com");
     expect(refs).toHaveLength(1);
     expect(refs[0]?.externalId).toBe("8888888");
-    expect(listingRefFromBizBuySellUrl(refs[0]!.url)?.url).toBe(refs[0]!.url);
+    expect(listingRefFromBizBuySellUrl(refs[0]?.url)?.url).toBe(refs[0]?.url);
   });
 });

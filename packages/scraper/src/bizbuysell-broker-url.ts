@@ -13,7 +13,9 @@ export function isBizBuySellBrokerProfileUrl(url: string): boolean {
   }
 }
 
-export function normalizeBizBuySellBrokerProfileUrl(url: string): string | null {
+export function normalizeBizBuySellBrokerProfileUrl(
+  url: string,
+): string | null {
   if (!isBizBuySellBrokerProfileUrl(url)) return null;
   const u = new URL(url);
   u.hash = "";
@@ -48,7 +50,9 @@ export function listingIdFromProfileLink(url: string): string | undefined {
 }
 
 /** Best-effort listing id from any BizBuySell listing, sold, or profile URL. */
-export function extractListingIdFromBizBuySellUrl(url: string): string | undefined {
+export function extractListingIdFromBizBuySellUrl(
+  url: string,
+): string | undefined {
   return (
     listingRefFromBizBuySellUrl(url)?.externalId ??
     listingIdFromProfileLink(url) ??

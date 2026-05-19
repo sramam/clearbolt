@@ -1,13 +1,13 @@
 import type { ListingRef } from "@clearbolt/core";
 import { discoverBizBuySellListingRefsFromSerper } from "./bizbuysell-serper-discovery.js";
 import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
-import { resolveWafMaxAttempts } from "./waf-retry-policy.js";
 import {
   markHostUseResidential,
   residentialProxyConfigured,
   residentialProxyEndpointCount,
 } from "./proxy-config.js";
 import { serperApiKeyFromEnv } from "./serper-client.js";
+import { resolveWafMaxAttempts } from "./waf-retry-policy.js";
 
 export type BizBuySellDiscoveryMode =
   | "direct"
@@ -68,7 +68,9 @@ export function shouldPreferMobileBizBuySellListing(): boolean {
 
 /** Retry listing fetch on www after m. hard-block / WAF (some listings are www-only). */
 export function shouldRetryBizBuySellListingOnDesktop(err: unknown): boolean {
-  if (process.env.CLEARBOLT_BIZBUYSELL_LISTING_DESKTOP_FALLBACK?.trim() === "0") {
+  if (
+    process.env.CLEARBOLT_BIZBUYSELL_LISTING_DESKTOP_FALLBACK?.trim() === "0"
+  ) {
     return false;
   }
   if (!(err instanceof Error)) return false;
@@ -137,7 +139,9 @@ export function catalogDiscoveryWafPolicy(
 ): FetchHtmlWithHttpWafPolicyOptions {
   const httpOnly = shouldKeepCatalogDiscoveryOnHttpLane();
   const ignoreStaleNeedsBrowser =
-    httpOnly || residentialProxyConfigured() || shouldUseBrowserFirstForBizBuySell();
+    httpOnly ||
+    residentialProxyConfigured() ||
+    shouldUseBrowserFirstForBizBuySell();
   if (!ignoreStaleNeedsBrowser) return base;
   return {
     ...base,

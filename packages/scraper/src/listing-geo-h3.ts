@@ -13,7 +13,11 @@ export type ListingGeoEncoding = {
   /** H3 cell at resolution 5 (~county scale; used when only state centroid is known). */
   h3IndexRes5?: string;
   /** How coordinates were derived. */
-  geocodeSource?: "json-ld" | "location-parse" | "state-centroid" | "city-jitter";
+  geocodeSource?:
+    | "json-ld"
+    | "location-parse"
+    | "state-centroid"
+    | "city-jitter";
 };
 
 function hashCity(city: string): number {
@@ -38,7 +42,11 @@ function resolveCoords(
   state: string | undefined,
   lat?: number,
   lng?: number,
-): { lat: number; lng: number; source: ListingGeoEncoding["geocodeSource"] } | null {
+): {
+  lat: number;
+  lng: number;
+  source: ListingGeoEncoding["geocodeSource"];
+} | null {
   if (lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng)) {
     return { lat, lng, source: "json-ld" };
   }
@@ -86,7 +94,8 @@ export function encodeListingGeo(input: {
 
   const coords = resolveCoords(city, state, input.latitude, input.longitude);
   const geo: ListingGeoEncoding = {
-    locationLabel: locationLabel ?? (city && state ? `${city}, ${state}` : undefined),
+    locationLabel:
+      locationLabel ?? (city && state ? `${city}, ${state}` : undefined),
     city,
     state: state?.length === 2 ? state.toUpperCase() : state,
     stateName: stateName ?? (state && state.length > 2 ? state : undefined),

@@ -1,14 +1,14 @@
-import type { Fetcher } from "./fetcher.js";
 import {
-  runBizBuySellCatalogScrape,
   type RunBizBuySellCatalogScrapeOptions,
   type RunBizBuySellCatalogScrapeResult,
+  runBizBuySellCatalogScrape,
 } from "./bizbuysell-catalog-scrape-pipeline.js";
 import {
   shouldPreferHttpIngestForBizBuySell,
   shouldUseBrowserFallbackForBizBuySellListingIngest,
   shouldUseBrowserFirstForBizBuySell,
 } from "./bizbuysell-run-policy.js";
+import type { Fetcher } from "./fetcher.js";
 import { createRotatingBrowserFetcher } from "./rotating-proxy-fetcher.js";
 
 export type {

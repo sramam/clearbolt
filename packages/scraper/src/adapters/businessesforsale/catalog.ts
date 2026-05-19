@@ -1,16 +1,5 @@
-import * as cheerio from "cheerio";
 import type { ListingRef } from "@clearbolt/core";
-import {
-  discoverNextPageUrl,
-  linkSelectorNextStrategy,
-  normalizePageUrl,
-  paginationNavNextStrategy,
-  relNextStrategy,
-  type PaginationStrategy,
-} from "../../discovery/pagination/index.js";
-import { discoverListingRefsFromJsonLd } from "../../discovery/json-ld-item-list.js";
-import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
-import type { CatalogAdapter } from "../types.js";
+import * as cheerio from "cheerio";
 import {
   catalogPageNumberFromPathname,
   catalogSlugFromPathname,
@@ -18,6 +7,17 @@ import {
   isBusinessesForSaleListingUrl,
   listingRefFromBusinessesForSaleUrl,
 } from "../../businessesforsale-listing-url.js";
+import { discoverListingRefsFromJsonLd } from "../../discovery/json-ld-item-list.js";
+import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
+import {
+  type PaginationStrategy,
+  discoverNextPageUrl,
+  linkSelectorNextStrategy,
+  normalizePageUrl,
+  paginationNavNextStrategy,
+  relNextStrategy,
+} from "../../discovery/pagination/index.js";
+import type { CatalogAdapter } from "../types.js";
 
 export {
   BUSINESSES_FOR_SALE_CALIFORNIA_CATALOG_URL,
@@ -52,8 +52,7 @@ export function normalizeBusinessesForSaleCatalogUrlForCompare(
   const slug = catalogSlugFromPathname(u.pathname);
   if (!slug) return normalizePageUrl(url);
   const page = catalogPageNumberFromPathname(u.pathname);
-  u.pathname =
-    page <= 1 ? `/us/search/${slug}` : `/us/search/${slug}-${page}`;
+  u.pathname = page <= 1 ? `/us/search/${slug}` : `/us/search/${slug}-${page}`;
   u.search = "";
   u.hash = "";
   return normalizePageUrl(u.toString());
@@ -65,7 +64,11 @@ const businessesForSalePagerLinkStrategy = linkSelectorNextStrategy({
 });
 
 export const businessesForSaleCatalogPaginationStrategies: readonly PaginationStrategy[] =
-  [relNextStrategy, businessesForSalePagerLinkStrategy, paginationNavNextStrategy];
+  [
+    relNextStrategy,
+    businessesForSalePagerLinkStrategy,
+    paginationNavNextStrategy,
+  ];
 
 function catalogHtmlHasListingAnchors(html: string): boolean {
   return /\/us\/[^/"'\s]+\.aspx/i.test(html);
@@ -76,7 +79,9 @@ function maxCatalogPageNumberInHtml(html: string, catalogSlug: string): number {
   const re = new RegExp(`/us/search/${escaped}-(\\d+)`, "gi");
   let max = 0;
   for (const m of html.matchAll(re)) {
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) continue;
+    const n = Number.parseInt(pageRaw, 10);
     if (!Number.isNaN(n) && n > max) max = n;
   }
   return max;

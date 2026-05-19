@@ -19,12 +19,18 @@ export function proxySessionDurationMs(): number {
 
 /** Rotate this many ms before session expiry (default 60s). */
 export function proxySessionRotateBufferMs(): number {
-  return Math.max(0, envInt("CLEARBOLT_PROXY_SESSION_ROTATE_BUFFER_MS", 60_000));
+  return Math.max(
+    0,
+    envInt("CLEARBOLT_PROXY_SESSION_ROTATE_BUFFER_MS", 60_000),
+  );
 }
 
 /** Wall-clock window per generation; a new Decodo session key each window. */
 export function proxySessionRotateWindowMs(): number {
-  return Math.max(60_000, proxySessionDurationMs() - proxySessionRotateBufferMs());
+  return Math.max(
+    60_000,
+    proxySessionDurationMs() - proxySessionRotateBufferMs(),
+  );
 }
 
 /** Monotonic generation counter for session key suffix (`g0`, `g1`, …). */

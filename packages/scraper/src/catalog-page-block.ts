@@ -52,7 +52,9 @@ export function detectCatalogPageBlock(
   const datadomeRestricted =
     lower.includes("access is temporarily restricted") ||
     lower.includes("unusual activity from your device") ||
-    (lower.includes("automated") && lower.includes("bot") && lower.includes("activity on your network"));
+    (lower.includes("automated") &&
+      lower.includes("bot") &&
+      lower.includes("activity on your network"));
 
   if (
     datadomeRestricted ||

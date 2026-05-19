@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  IngestFailureCollector,
   formatIngestError,
   ingestErrorBucket,
-  IngestFailureCollector,
 } from "../src/ingest-failure-log.js";
 
 describe("ingest failure log", () => {

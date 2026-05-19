@@ -30,10 +30,7 @@ describe("browser resource blocking", () => {
       ),
     ).toBe(false);
     expect(
-      shouldBlockBrowserRequest(
-        "https://m.bizbuysell.com/main.js",
-        "script",
-      ),
+      shouldBlockBrowserRequest("https://m.bizbuysell.com/main.js", "script"),
     ).toBe(false);
     expect(
       shouldBlockBrowserRequest(
@@ -46,7 +43,10 @@ describe("browser resource blocking", () => {
   it("allows dealstream and datadome challenge scripts", () => {
     process.env.CLEARBOLT_BROWSER_BLOCK_THIRD_PARTY = "1";
     expect(
-      shouldBlockBrowserRequest("https://dealstream.com/assets/app.js", "script"),
+      shouldBlockBrowserRequest(
+        "https://dealstream.com/assets/app.js",
+        "script",
+      ),
     ).toBe(false);
     expect(
       shouldBlockBrowserRequest(

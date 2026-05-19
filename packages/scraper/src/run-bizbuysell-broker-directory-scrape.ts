@@ -1,4 +1,5 @@
-import type { BrokerDirectoryRef } from "./broker-directory-ref.js";
+import type { EvidenceStore, MetadataStore } from "@clearbolt/storage";
+import { rewriteBizBuySellToMobileUrl } from "./adapters/bizbuysell-mobile.js";
 import { BIZBUYSELL_ADAPTER_ID } from "./adapters/bizbuysell.js";
 import {
   discoverBrokerRefsFromBizBuySellDirectoryPage,
@@ -6,24 +7,26 @@ import {
   isBizBuySellBrokerDirectoryUrl,
   recoverBrokerDirectoryPageUrl,
 } from "./adapters/bizbuysell/broker-directory.js";
-import { rewriteBizBuySellToMobileUrl } from "./adapters/bizbuysell-mobile.js";
-import type { Fetcher } from "./fetcher.js";
-import { HttpFetcher } from "./http-fetcher.js";
+import { catalogPageFetchTargets } from "./bizbuysell-catalog-scrape-pipeline.js";
 import {
   catalogDiscoveryWafPolicy,
   catalogPageGapMs,
-  shouldUseBrowserFirstForBizBuySell,
   primeBizBuySellResidentialHosts,
+  shouldUseBrowserFirstForBizBuySell,
 } from "./bizbuysell-run-policy.js";
-import { createRotatingHttpFetcher } from "./rotating-proxy-fetcher.js";
+import type { BrokerDirectoryRef } from "./broker-directory-ref.js";
+import { writeBrokerRefsFile } from "./broker-refs-file.js";
+import { walkBrokerDirectoryPages } from "./discovery/broker-directory-walk.js";
 import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
 import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
-import { proxySessionKeyFromEnv, residentialProxyConfigured } from "./proxy-config.js";
-import type { MetadataStore, EvidenceStore } from "@clearbolt/storage";
-import { walkBrokerDirectoryPages } from "./discovery/broker-directory-walk.js";
-import { writeBrokerRefsFile } from "./broker-refs-file.js";
+import type { Fetcher } from "./fetcher.js";
+import { HttpFetcher } from "./http-fetcher.js";
+import {
+  proxySessionKeyFromEnv,
+  residentialProxyConfigured,
+} from "./proxy-config.js";
+import { createRotatingHttpFetcher } from "./rotating-proxy-fetcher.js";
 import { throttleHost } from "./throttle.js";
-import { catalogPageFetchTargets } from "./bizbuysell-catalog-scrape-pipeline.js";
 
 export type RunBizBuySellBrokerDirectoryScrapeOptions = {
   directoryUrl: string;
@@ -91,7 +94,11 @@ async function collectBrokerRefsFromDirectory(
       let lastErr: unknown;
       for (const target of targets) {
         try {
-          const res = await fetchHtmlWithHttpWafPolicy(fetcher, target, wafPolicy);
+          const res = await fetchHtmlWithHttpWafPolicy(
+            fetcher,
+            target,
+            wafPolicy,
+          );
           return { body: res.body, finalUrl: res.finalUrl, status: res.status };
         } catch (e) {
           lastErr = e;

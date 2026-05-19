@@ -48,7 +48,9 @@ export class IngestFailureCollector {
   logFailure(ref: ListingRef, err: unknown): void {
     const entry = this.record(ref, err);
     const id = entry.externalId ? ` #${entry.externalId}` : "";
-    console.error(`[ingest] failed${id} ${entry.url}\n         ${entry.message}`);
+    console.error(
+      `[ingest] failed${id} ${entry.url}\n         ${entry.message}`,
+    );
   }
 
   printSummary(): void {
@@ -60,7 +62,9 @@ export class IngestFailureCollector {
       if (prev) prev.count++;
       else byBucket.set(bucket, { count: 1, sample: f.message });
     }
-    const ranked = [...byBucket.entries()].sort((a, b) => b[1].count - a[1].count);
+    const ranked = [...byBucket.entries()].sort(
+      (a, b) => b[1].count - a[1].count,
+    );
     console.error(
       `[ingest] ${this.failures.length} failure(s) — top error kinds:`,
     );

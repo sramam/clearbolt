@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
-import type { BrokerDirectoryRef } from "./broker-directory-ref.js";
 import { normalizeAdapterId } from "./adapter-scoped-paths.js";
+import type { BrokerDirectoryRef } from "./broker-directory-ref.js";
 import { brokerDirectoryRefFromBizBuySellProfileUrl } from "./broker-directory-ref.js";
 
 export const BROKER_REFS_FILE_VERSION = 1;
@@ -98,7 +98,9 @@ export async function writeBrokerRefsFile(
   await writeFile(path, JSON.stringify(body, null, 2), "utf8");
 }
 
-export async function readBrokerRefsFile(filePath: string): Promise<BrokerRefsFile> {
+export async function readBrokerRefsFile(
+  filePath: string,
+): Promise<BrokerRefsFile> {
   const raw = await readFile(resolveBrokerRefsPath(filePath), "utf8");
   const data = JSON.parse(raw) as BrokerRefsFile;
   if (data.version !== BROKER_REFS_FILE_VERSION) {

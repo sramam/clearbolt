@@ -1,19 +1,11 @@
 import type { ListingRef } from "@clearbolt/core";
-import { BIZBUYSELL_ADAPTER_ID } from "./adapters/bizbuysell.js";
 import {
   bizBuySellCatalogAdapter,
   isBizBuySellCatalogUrl,
 } from "./adapters/bizbuysell-catalog.js";
 import { rewriteBizBuySellToMobileUrl } from "./adapters/bizbuysell-mobile.js";
-import { isTransientNetworkError } from "./network-errors.js";
-import {
-  ingestListingRefs,
-  withCanonicalTracking,
-  type RunBizBuySellScrapeOptions,
-  type RunBizBuySellScrapeResult,
-} from "./bizbuysell-scrape-pipeline.js";
-import type { Fetcher } from "./fetcher.js";
-import { HttpFetcher } from "./http-fetcher.js";
+import { BIZBUYSELL_ADAPTER_ID } from "./adapters/bizbuysell.js";
+import { discoverNextBizBuySellCatalogPageUrl } from "./adapters/bizbuysell/catalog.js";
 import {
   catalogDiscoveryWafPolicy,
   catalogPageGapMs,
@@ -24,23 +16,28 @@ import {
   shouldUseBrowserFirstForBizBuySell,
   shouldUseHttpProxyFirstForBizBuySell,
 } from "./bizbuysell-run-policy.js";
-import { createRotatingHttpFetcher } from "./rotating-proxy-fetcher.js";
-import { discoverNextBizBuySellCatalogPageUrl } from "./adapters/bizbuysell/catalog.js";
 import {
-  readProxyPolicy,
-  residentialProxyConfigured,
-} from "./proxy-config.js";
-import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
-import { proxySessionKeyFromEnv } from "./proxy-config.js";
-import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
+  type RunBizBuySellScrapeOptions,
+  type RunBizBuySellScrapeResult,
+  ingestListingRefs,
+  withCanonicalTracking,
+} from "./bizbuysell-scrape-pipeline.js";
+import { writeCatalogRefsFile } from "./catalog-refs-file.js";
 import { walkCatalogPages } from "./discovery/catalog-walk.js";
 import { mergeListingRefByExternalId } from "./discovery/listing-ref-merge.js";
+import { normalizeUrlForCompare } from "./discovery/pagination/normalize.js";
+import { fetchHtmlWithHttpWafPolicy } from "./fetch-with-waf-policy.js";
+import type { FetchHtmlWithHttpWafPolicyOptions } from "./fetch-with-waf-policy.js";
+import type { Fetcher } from "./fetcher.js";
+import { HttpFetcher } from "./http-fetcher.js";
 import {
   catalogStalePagesToStop,
   seedKnownKeysForCatalogDiscovery,
 } from "./listing-ingest-state.js";
-import { normalizeUrlForCompare } from "./discovery/pagination/normalize.js";
-import { writeCatalogRefsFile } from "./catalog-refs-file.js";
+import { isTransientNetworkError } from "./network-errors.js";
+import { readProxyPolicy, residentialProxyConfigured } from "./proxy-config.js";
+import { proxySessionKeyFromEnv } from "./proxy-config.js";
+import { createRotatingHttpFetcher } from "./rotating-proxy-fetcher.js";
 import { throttleHost } from "./throttle.js";
 
 export type ResumeCatalogDiscovery = {
@@ -145,7 +142,8 @@ async function fetchCatalogPageHtml(
 
   let lastErr: unknown;
   for (let i = 0; i < targets.length; i++) {
-    const target = targets[i]!;
+    const target = targets[i];
+    if (target === undefined) continue;
     try {
       const res = await fetchHtmlWithHttpWafPolicy(fetcher, target, wafPolicy);
       return { body: res.body, finalUrl: res.finalUrl || target };
@@ -277,9 +275,7 @@ async function collectRefsFromCatalog(
       }
       if (process.env.CLEARBOLT_SCRAPER_DEBUG === "1") {
         console.error(
-          `[scraper] catalog pagination: ${reason}` +
-            (nextUrl ? ` → ${nextUrl}` : "") +
-            ` (at ${lastPageUrl})`,
+          `[scraper] catalog pagination: ${reason}${nextUrl ? ` → ${nextUrl}` : ""} (at ${lastPageUrl})`,
         );
       }
     },
@@ -315,10 +311,7 @@ export async function runBizBuySellCatalogScrape(
   }
 
   primeBizBuySellResidentialHosts();
-  if (
-    readProxyPolicy() === "residential" &&
-    !residentialProxyConfigured()
-  ) {
+  if (readProxyPolicy() === "residential" && !residentialProxyConfigured()) {
     const file = process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE?.trim();
     throw new Error(
       file
@@ -381,7 +374,7 @@ export async function runBizBuySellCatalogScrape(
   const skipCatalogWalk =
     options.listingRefs?.length && !options.resumeCatalogDiscovery;
   if (skipCatalogWalk) {
-    refs = options.listingRefs!;
+    refs = options.listingRefs ?? [];
     pagesFetched = 0;
     lastPageUrl = catalogUrl;
     lastHtml = "";
@@ -432,8 +425,7 @@ export async function runBizBuySellCatalogScrape(
   const ingestLimit =
     options.ingestLimit ??
     (options.limit && options.limit > 0 ? options.limit : 0);
-  const toIngest =
-    ingestLimit > 0 ? refs.slice(0, ingestLimit) : refs;
+  const toIngest = ingestLimit > 0 ? refs.slice(0, ingestLimit) : refs;
 
   options.onProgress?.({
     phase: "fetch",

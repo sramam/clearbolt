@@ -7,24 +7,24 @@ import type {
 } from "@clearbolt/core";
 import type { EvidenceRef } from "@clearbolt/core";
 import * as cheerio from "cheerio";
-import {
-  type FetchHtmlWithHttpWafPolicyOptions,
-  fetchHtmlWithHttpWafPolicy,
-} from "../fetch-with-waf-policy.js";
-import type { Fetcher } from "../fetcher.js";
 import { listingRefFromBizBuySellUrl } from "../bizbuysell-listing-url.js";
 import {
   shouldPreferMobileBizBuySellListing,
   shouldRetryBizBuySellListingOnDesktop,
 } from "../bizbuysell-run-policy.js";
 import {
-  rewriteBizBuySellToDesktopUrl,
-  rewriteBizBuySellToMobileUrl,
-} from "./bizbuysell-mobile.js";
+  type FetchHtmlWithHttpWafPolicyOptions,
+  fetchHtmlWithHttpWafPolicy,
+} from "../fetch-with-waf-policy.js";
+import type { Fetcher } from "../fetcher.js";
 import {
   parseBizBuySellListingPage,
   toParsedListingFields,
 } from "./bizbuysell-listing-parse.js";
+import {
+  rewriteBizBuySellToDesktopUrl,
+  rewriteBizBuySellToMobileUrl,
+} from "./bizbuysell-mobile.js";
 
 export const BIZBUYSELL_ADAPTER_ID = "bizbuysell";
 
@@ -106,7 +106,9 @@ async function tryBrowserListingFetch(
   if (!browserFetcher) return null;
   try {
     if (process.env.CLEARBOLT_PROXY_ROTATION_LOG === "1") {
-      console.log(`[ingest] HTTP blocked for ${listingId}; trying Playwright on www`);
+      console.log(
+        `[ingest] HTTP blocked for ${listingId}; trying Playwright on www`,
+      );
     }
     return await fetchListingHtmlAtUrl(browserFetcher, canonicalUrl, {
       ...options,

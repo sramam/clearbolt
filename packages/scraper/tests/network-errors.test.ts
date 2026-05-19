@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isTransientNetworkError } from "../src/network-errors.js";
 import { catalogPageFetchTargets } from "../src/bizbuysell-catalog-scrape-pipeline.js";
+import { isTransientNetworkError } from "../src/network-errors.js";
 
 describe("network-errors", () => {
   it("detects undici connect timeout", () => {
@@ -13,14 +13,12 @@ describe("network-errors", () => {
 
 describe("catalogPageFetchTargets", () => {
   it("does not fall back mobile to www", () => {
-    const mobile =
-      "https://m.bizbuysell.com/california-businesses-for-sale/";
+    const mobile = "https://m.bizbuysell.com/california-businesses-for-sale/";
     expect(catalogPageFetchTargets(mobile)).toEqual([mobile]);
   });
 
   it("adds mobile fallback when primary is www", () => {
-    const www =
-      "https://www.bizbuysell.com/california-businesses-for-sale/";
+    const www = "https://www.bizbuysell.com/california-businesses-for-sale/";
     expect(catalogPageFetchTargets(www)).toEqual([
       www,
       "https://m.bizbuysell.com/california-businesses-for-sale/",

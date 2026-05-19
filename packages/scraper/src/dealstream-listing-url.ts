@@ -21,11 +21,11 @@ export function isDealStreamListingPathname(pathname: string): boolean {
 export function catalogSlugFromPathname(pathname: string): string | null {
   const normalized = pathname.replace(/\/$/, "") || "/";
   const bizSale = normalized.match(/^(\/biz-sale)(?:\/\d+)?$/i);
-  if (bizSale) return bizSale[1]!;
+  if (bizSale?.[1]) return bizSale[1];
   const feature = normalized.match(
     /^(\/(?:off-market|new-arrivals)-businesses-for-sale)(?:\/\d+)?$/i,
   );
-  if (feature) return feature[1]!;
+  if (feature?.[1]) return feature[1];
   const geo = normalized.match(/^(.+-businesses-for-sale)(?:\/\d+)?$/i);
   return geo?.[1] ?? null;
 }
@@ -34,7 +34,9 @@ export function catalogPageNumberFromPathname(pathname: string): number {
   const normalized = pathname.replace(/\/$/, "") || "/";
   const m = normalized.match(/\/(\d+)$/);
   if (m) {
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) return 1;
+    const n = Number.parseInt(pageRaw, 10);
     if (!Number.isNaN(n) && n >= 1) return n;
   }
   return 1;

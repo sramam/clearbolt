@@ -1,13 +1,13 @@
-import type { Fetcher } from "../fetcher.js";
 import type { FetchHtmlWithHttpWafPolicyOptions } from "../fetch-with-waf-policy.js";
-import { bizBuySellListingFetchUrl } from "./bizbuysell.js";
 import { fetchHtmlWithHttpWafPolicy } from "../fetch-with-waf-policy.js";
+import type { Fetcher } from "../fetcher.js";
 import {
   isListingSoldOnBrokerProfile,
   parseBizBuySellBrokerProfilePage,
 } from "./bizbuysell-broker-parse.js";
 import { enrichListingWithLlm } from "./bizbuysell-listing-llm-enrich.js";
 import type { BizBuySellListingExtract } from "./bizbuysell-listing-parse.js";
+import { bizBuySellListingFetchUrl } from "./bizbuysell.js";
 
 export function brokerProfileEnrichEnabled(): boolean {
   return process.env.CLEARBOLT_BIZBUYSELL_BROKER_ENRICH?.trim() === "1";
@@ -29,7 +29,11 @@ export async function enrichListingFromBrokerProfile(
   if (!profileUrl || !listingId) return;
 
   const fetchUrl = bizBuySellListingFetchUrl(profileUrl);
-  const { body } = await fetchHtmlWithHttpWafPolicy(fetcher, fetchUrl, wafPolicy);
+  const { body } = await fetchHtmlWithHttpWafPolicy(
+    fetcher,
+    fetchUrl,
+    wafPolicy,
+  );
   const profile = parseBizBuySellBrokerProfilePage(body, profileUrl);
 
   if (isListingSoldOnBrokerProfile(profile, listingId)) {

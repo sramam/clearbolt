@@ -41,7 +41,9 @@ export function isBusinessBrokerListingUrl(url: string): boolean {
   }
 }
 
-export function listingRefFromBusinessBrokerUrl(url: string): ListingRef | null {
+export function listingRefFromBusinessBrokerUrl(
+  url: string,
+): ListingRef | null {
   if (!isBusinessBrokerListingUrl(url)) return null;
   const u = new URL(url);
   u.hash = "";

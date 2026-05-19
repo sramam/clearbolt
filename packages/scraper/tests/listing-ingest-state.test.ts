@@ -3,10 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  DiskListingIngestStateStore,
   buildListingIngestState,
   countIngestedInRefList,
   countListingIngestStatesOnDisk,
-  DiskListingIngestStateStore,
 } from "../src/listing-ingest-state.js";
 
 describe("DiskListingIngestStateStore", () => {

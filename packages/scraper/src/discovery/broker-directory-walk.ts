@@ -76,7 +76,11 @@ export async function walkBrokerDirectoryPages(
     });
 
     const pageStarted = performance.now();
-    const { body, finalUrl, status: pageStatus } = await options.fetchPage(url, {
+    const {
+      body,
+      finalUrl,
+      status: pageStatus,
+    } = await options.fetchPage(url, {
       pageIndex: pagesFetched,
     });
     pagesFetched++;

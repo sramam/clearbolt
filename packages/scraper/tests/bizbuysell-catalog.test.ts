@@ -39,15 +39,15 @@ describe("bizbuysell catalog", () => {
         "https://www.bizbuysell.com/businesses-for-sale/2/",
       ),
     ).toBe(true);
-    expect(catalogAdapterFromUrl("https://www.bizbuysell.com/businesses-for-sale/")).toBe(
-      "bizbuysell",
-    );
+    expect(
+      catalogAdapterFromUrl("https://www.bizbuysell.com/businesses-for-sale/"),
+    ).toBe("bizbuysell");
   });
 
   it("rewrites to mobile host", () => {
-    expect(rewriteBizBuySellToMobileUrl(BIZBUYSELL_CALIFORNIA_CATALOG_URL)).toBe(
-      "https://m.bizbuysell.com/california-businesses-for-sale/",
-    );
+    expect(
+      rewriteBizBuySellToMobileUrl(BIZBUYSELL_CALIFORNIA_CATALOG_URL),
+    ).toBe("https://m.bizbuysell.com/california-businesses-for-sale/");
   });
 
   it("synthesizes next page when pager chrome exists without page links", () => {

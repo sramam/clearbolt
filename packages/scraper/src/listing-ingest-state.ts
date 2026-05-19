@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { EvidenceRef, ListingRef } from "@clearbolt/core";
 import { normalizeAdapterId } from "./adapter-scoped-paths.js";
@@ -105,11 +105,17 @@ export class DiskListingIngestStateStore implements ListingIngestStateStore {
     );
   }
 
-  async get(adapter: string, externalId: string): Promise<ListingIngestState | null> {
+  async get(
+    adapter: string,
+    externalId: string,
+  ): Promise<ListingIngestState | null> {
     try {
       const raw = await readFile(this.filePath(adapter, externalId), "utf8");
       const state = parseState(raw);
-      if (state && normalizeAdapterId(state.adapter) !== normalizeAdapterId(adapter)) {
+      if (
+        state &&
+        normalizeAdapterId(state.adapter) !== normalizeAdapterId(adapter)
+      ) {
         return null;
       }
       return state;
@@ -124,7 +130,11 @@ export class DiskListingIngestStateStore implements ListingIngestStateStore {
     const adapter = normalizeAdapterId(state.adapter);
     const path = this.filePath(adapter, state.externalId);
     await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, serializeListingIngestState({ ...state, adapter }), "utf8");
+    await writeFile(
+      path,
+      serializeListingIngestState({ ...state, adapter }),
+      "utf8",
+    );
   }
 
   async listIngestedDedupeKeys(adapter: string): Promise<Set<string>> {
@@ -163,7 +173,10 @@ export class JsonBackendListingIngestStateStore
 {
   constructor(private readonly backend: ListingIngestStateJsonBackend) {}
 
-  async get(adapter: string, externalId: string): Promise<ListingIngestState | null> {
+  async get(
+    adapter: string,
+    externalId: string,
+  ): Promise<ListingIngestState | null> {
     const raw = await this.backend.getJson(adapter, externalId);
     if (!raw) return null;
     return parseState(raw);

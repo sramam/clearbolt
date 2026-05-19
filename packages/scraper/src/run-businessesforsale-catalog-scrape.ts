@@ -1,9 +1,9 @@
-import type { Fetcher } from "./fetcher.js";
 import {
-  runBusinessesForSaleCatalogScrape,
   type RunBusinessesForSaleCatalogScrapeOptions,
   type RunBusinessesForSaleCatalogScrapeResult,
+  runBusinessesForSaleCatalogScrape,
 } from "./businessesforsale-catalog-scrape-pipeline.js";
+import type { Fetcher } from "./fetcher.js";
 import { createRotatingBrowserFetcher } from "./rotating-proxy-fetcher.js";
 
 export type {

@@ -1,22 +1,25 @@
-import * as cheerio from "cheerio";
 import type { ListingRef } from "@clearbolt/core";
+import * as cheerio from "cheerio";
 import {
+  isBusinessBrokerCatalogUrl,
+  listingRefFromBusinessBrokerUrl,
+} from "../../businessbroker-listing-url.js";
+import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
+import {
+  type PaginationStrategy,
   discoverNextPageUrl,
   linkSelectorNextStrategy,
   normalizePageUrl,
   paginationNavNextStrategy,
   queryPageStrategy,
   relNextStrategy,
-  type PaginationStrategy,
 } from "../../discovery/pagination/index.js";
-import { mergeListingRefsIntoMap } from "../../discovery/listing-ref-merge.js";
 import type { CatalogAdapter } from "../types.js";
-import {
-  isBusinessBrokerCatalogUrl,
-  listingRefFromBusinessBrokerUrl,
-} from "../../businessbroker-listing-url.js";
 
-export { isBusinessBrokerCatalogUrl, BUSINESSBROKER_CALIFORNIA_CATALOG_URL } from "../../businessbroker-listing-url.js";
+export {
+  isBusinessBrokerCatalogUrl,
+  BUSINESSBROKER_CALIFORNIA_CATALOG_URL,
+} from "../../businessbroker-listing-url.js";
 
 const LISTING_HREF = /\/business-for-sale\/[^/]+\/\d+\.aspx/i;
 
@@ -68,18 +71,28 @@ const businessBrokerPagerLinkStrategy = linkSelectorNextStrategy({
 });
 
 export const businessBrokerCatalogPaginationStrategies: readonly PaginationStrategy[] =
-  [relNextStrategy, businessBrokerPagerLinkStrategy, paginationNavNextStrategy, queryPageStrategy];
+  [
+    relNextStrategy,
+    businessBrokerPagerLinkStrategy,
+    paginationNavNextStrategy,
+    queryPageStrategy,
+  ];
 
 function catalogHtmlHasListingAnchors(html: string): boolean {
   return LISTING_HREF.test(html);
 }
 
-function maxCatalogPageNumberInHtml(html: string, catalogPathname: string): number {
+function maxCatalogPageNumberInHtml(
+  html: string,
+  catalogPathname: string,
+): number {
   const escaped = catalogPathname.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`${escaped}\\?page=(\\d+)`, "gi");
   let max = 0;
   for (const m of html.matchAll(re)) {
-    const n = Number.parseInt(m[1]!, 10);
+    const pageRaw = m[1];
+    if (pageRaw === undefined) continue;
+    const n = Number.parseInt(pageRaw, 10);
     if (!Number.isNaN(n) && n > max) max = n;
   }
   return max;

@@ -71,8 +71,8 @@ describe("fetchListingHtmlWithWafPolicy www fallback", () => {
     );
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(mockFetch.mock.calls[0]![1]).toBe(LISTING_M);
-    expect(mockFetch.mock.calls[1]![1]).toBe(LISTING_WWW);
+    expect(mockFetch.mock.calls[0]?.[1]).toBe(LISTING_M);
+    expect(mockFetch.mock.calls[1]?.[1]).toBe(LISTING_WWW);
     expect(result.finalUrl).toBe(LISTING_WWW);
     expect(result.html).toContain("listing ok");
   });
@@ -92,6 +92,6 @@ describe("fetchListingHtmlWithWafPolicy www fallback", () => {
       { persistNeedsBrowser: async () => undefined, desktopFirst: true },
     );
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0]![1]).toBe(LISTING_WWW);
+    expect(mockFetch.mock.calls[0]?.[1]).toBe(LISTING_WWW);
   });
 });

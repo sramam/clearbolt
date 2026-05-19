@@ -1,6 +1,6 @@
 import type { ListingRef } from "@clearbolt/core";
 import { listingRefFromBizBuySellUrl } from "./bizbuysell-listing-url.js";
-import { serperSearch, type SerperSearchOptions } from "./serper-client.js";
+import { type SerperSearchOptions, serperSearch } from "./serper-client.js";
 
 export {
   isBizBuySellListingUrl,

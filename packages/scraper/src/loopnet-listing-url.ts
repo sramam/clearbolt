@@ -38,7 +38,8 @@ export function isLoopNetListingPathname(pathname: string): boolean {
 
 export function isLoopNetCatalogPathname(pathname: string): boolean {
   if (/^\/Listing\//i.test(pathname)) return false;
-  if (/^\/biz\/business-(?:opportunity|for-sale)\//i.test(pathname)) return false;
+  if (/^\/biz\/business-(?:opportunity|for-sale)\//i.test(pathname))
+    return false;
   return CATALOG_PATH.test(pathname);
 }
 

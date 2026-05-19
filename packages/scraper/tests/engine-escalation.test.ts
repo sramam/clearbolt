@@ -60,7 +60,7 @@ describe("engine escalation", () => {
     const { planHttpLaneAfterWafResponse } = await import(
       "../src/waf-retry-policy.js"
     );
-    const body = `Access Denied edgesuite.net errors.edgesuite.net/abc`;
+    const body = "Access Denied edgesuite.net errors.edgesuite.net/abc";
     expect(
       planHttpLaneAfterWafResponse(403, body, {
         httpAttemptIndex: 0,

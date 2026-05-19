@@ -15,7 +15,8 @@ export type RotatingFetcherCloser = {
 };
 
 function logProxyRotation(workerIndex: number, sessionKey: string): void {
-  const windowMin = Math.round((proxySessionRotateWindowMs() / 60_000) * 10) / 10;
+  const windowMin =
+    Math.round((proxySessionRotateWindowMs() / 60_000) * 10) / 10;
   const msg = `[proxy] worker ${workerIndex} → ${sessionKey} (rotate every ~${windowMin}m)`;
   if (process.env.CLEARBOLT_SCRAPER_DEBUG === "1") {
     console.error(msg);
@@ -30,7 +31,9 @@ function logProxyRotation(workerIndex: number, sessionKey: string): void {
  * HTTP fetcher that picks a new Decodo session key each rotation window.
  * Cheap to recreate (no browser); use for parallel listing ingest.
  */
-export function createRotatingHttpFetcher(workerIndex: number): RotatingFetcherCloser {
+export function createRotatingHttpFetcher(
+  workerIndex: number,
+): RotatingFetcherCloser {
   let generation = -1;
   /** Bumps past time-based generation after Akamai hard block on this worker. */
   let generationBump = 0;

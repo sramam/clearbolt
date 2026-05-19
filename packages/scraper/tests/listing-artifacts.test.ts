@@ -1,10 +1,10 @@
+import { DiskProcessedArtifactStore } from "@clearbolt/storage";
 import { describe, expect, it } from "vitest";
 import {
   buildStructuredListingJson,
   htmlToListingMarkdown,
   persistListingProcessedArtifacts,
 } from "../src/listing-artifacts.js";
-import { DiskProcessedArtifactStore } from "@clearbolt/storage";
 
 describe("listing artifacts", () => {
   it("builds markdown from html", () => {
@@ -34,7 +34,10 @@ describe("listing artifacts", () => {
     expect(refs.embedding?.key).toContain("embedding");
     expect(refs.classification?.key).toContain("classification");
 
-    const structured = await store.get(refs.structured!);
+    const structuredKey = refs.structured;
+    expect(structuredKey).toBeDefined();
+    if (!structuredKey) return;
+    const structured = await store.get(structuredKey);
     const chunks: Buffer[] = [];
     for await (const c of structured) {
       chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
