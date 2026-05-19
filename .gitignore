@@ -12,6 +12,7 @@ data*/
 proxy-endpoints.local.txt
 junk.junk
 sample.html
+undefined/
 .DS_Store
 coverage/
 .pnpm-store/
