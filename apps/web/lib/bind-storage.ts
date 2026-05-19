@@ -20,10 +20,7 @@ import {
   r2EvidenceConfigFromEnv,
 } from "@clearbolt/storage-r2";
 
-const monorepoRoot = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../..",
-);
+const monorepoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 export interface BoundStorage {
   evidence: EvidenceStore;

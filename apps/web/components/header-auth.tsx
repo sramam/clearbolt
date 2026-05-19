@@ -1,7 +1,7 @@
 "use client";
 
-import { signOut } from "@clearbolt/auth/client";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@clearbolt/auth/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

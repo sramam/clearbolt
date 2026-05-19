@@ -43,8 +43,8 @@ export default async function ProjectsPage({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Team pipeline deals you have promoted from search. Deep research runs
-            when status is researching.
+            Team pipeline deals you have promoted from search. Deep research
+            runs when status is researching.
           </p>
         </div>
 

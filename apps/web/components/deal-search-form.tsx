@@ -150,9 +150,8 @@ export function DealSearchForm(props: {
       </form>
 
       {running || steps.length > 0 ? (
-        <div
-          className="rounded-lg border border-border bg-muted/30 px-4 py-3"
-          role="status"
+        <output
+          className="block rounded-lg border border-border bg-muted/30 px-4 py-3"
           aria-live="polite"
         >
           <div className="mb-2 flex items-center justify-between gap-2 text-sm font-medium">
@@ -210,7 +209,7 @@ export function DealSearchForm(props: {
               Try again or adjust keywords.
             </p>
           ) : null}
-        </div>
+        </output>
       ) : null}
     </div>
   );

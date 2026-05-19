@@ -4,9 +4,7 @@ export function isBetterAuthConfigured(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   const secret = env.BETTER_AUTH_SECRET?.trim();
-  return Boolean(
-    env.DATABASE_URL?.trim() && secret && secret.length >= 32,
-  );
+  return Boolean(env.DATABASE_URL?.trim() && secret && secret.length >= 32);
 }
 
 /** Local walking skeleton: dev user id when better-auth is not wired. */

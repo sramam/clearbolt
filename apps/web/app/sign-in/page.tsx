@@ -1,7 +1,10 @@
 import { AppShell } from "@/components/app-shell";
 import { SignInForm } from "@/components/sign-in-form";
 import { getSessionContext } from "@/lib/auth-session";
-import { isAuthConfigured, isResendOtpConfigured } from "@clearbolt/auth/server";
+import {
+  isAuthConfigured,
+  isResendOtpConfigured,
+} from "@clearbolt/auth/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";

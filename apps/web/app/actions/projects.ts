@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireSessionOrRedirect } from "@/lib/auth-session";
 import { createMetadataStore } from "@/lib/metadata-store";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function promoteDealToProject(formData: FormData) {
   const session = await requireSessionOrRedirect("/search");

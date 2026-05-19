@@ -1,10 +1,7 @@
 import { DealSearchForm } from "@/components/deal-search-form";
-import {
-  IconToggleGroup,
-  IconToggleLink,
-} from "@/components/icon-toggle-link";
-import { SearchInsightsPanel } from "@/components/search-insights-panel";
+import { IconToggleGroup, IconToggleLink } from "@/components/icon-toggle-link";
 import { PromoteDealButton } from "@/components/promote-deal-button";
+import { SearchInsightsPanel } from "@/components/search-insights-panel";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -118,8 +115,8 @@ export function DealsExplorer(props: {
             <CardTitle>No database configured</CardTitle>
             <CardDescription>
               Set <code className="rounded bg-muted px-1">DATABASE_URL</code> in{" "}
-              <code className="rounded bg-muted px-1">.env.dev</code> and restart
-              the web app.
+              <code className="rounded bg-muted px-1">.env.dev</code> and
+              restart the web app.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -204,7 +201,8 @@ export function DealsExplorer(props: {
         {query ? (
           <>
             {" "}
-            matching <span className="font-medium text-foreground">"{query}"</span>
+            matching{" "}
+            <span className="font-medium text-foreground">"{query}"</span>
           </>
         ) : null}
         {hasDatabase && totalDeals > 0 ? (
@@ -355,4 +353,3 @@ function renderDealList(
     </ul>
   );
 }
-

@@ -2,13 +2,13 @@ import { getSessionContext } from "@/lib/auth-session";
 import { runBizBuySellScrapeWithBrowser } from "@/lib/bizbuysell-scrape";
 import { buildSearchHref } from "@/lib/search-url";
 import { databaseUrlFromEnv } from "@clearbolt/db";
+import { buildBizBuySellSearchUrl } from "@clearbolt/scraper/bizbuysell-search-url";
+import { serperApiKeyFromEnv } from "@clearbolt/scraper/serper-client";
 import {
   expandSearchQueryWithLlm,
   mergeRelaxedFtsQuery,
   prepareSearchQuery,
 } from "@clearbolt/search";
-import { buildBizBuySellSearchUrl } from "@clearbolt/scraper/bizbuysell-search-url";
-import { serperApiKeyFromEnv } from "@clearbolt/scraper/serper-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,7 +70,11 @@ export async function POST(req: Request): Promise<Response> {
             query: rawQ,
             extra: { scrapeError: "no_database" },
           });
-          push({ step: "done", message: "No database configured", detail: href });
+          push({
+            step: "done",
+            message: "No database configured",
+            detail: href,
+          });
           controller.close();
           return;
         }

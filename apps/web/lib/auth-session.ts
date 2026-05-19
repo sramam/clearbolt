@@ -1,7 +1,7 @@
-import { V0_WORKSPACE_ID } from "@clearbolt/core";
+import { hasDevAuthBypass } from "@/lib/auth-config";
 import type { ClearboltClaims, WorkspaceRole } from "@clearbolt/auth";
 import { getClearboltAuth, isAuthConfigured } from "@clearbolt/auth/server";
-import { hasDevAuthBypass } from "@/lib/auth-config";
+import { V0_WORKSPACE_ID } from "@clearbolt/core";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -87,9 +87,7 @@ export async function requireSessionOrRedirect(
 ): Promise<SessionContext> {
   const session = await getSessionContext();
   if (!session) {
-    redirect(
-      `/sign-in?next=${encodeURIComponent(nextPath)}`,
-    );
+    redirect(`/sign-in?next=${encodeURIComponent(nextPath)}`);
   }
   return session;
 }

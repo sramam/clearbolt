@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient, signIn } from "@clearbolt/auth/client";
+import { GoogleLogo } from "@/components/icons/google-logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GoogleLogo } from "@/components/icons/google-logo";
 import { Input } from "@/components/ui/input";
+import { authClient, signIn } from "@clearbolt/auth/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -109,7 +109,8 @@ export function SignInForm(props: {
         <CardHeader>
           <CardTitle>Auth not configured</CardTitle>
           <CardDescription>
-            Set <code className="rounded bg-muted px-1">BETTER_AUTH_SECRET</code>{" "}
+            Set{" "}
+            <code className="rounded bg-muted px-1">BETTER_AUTH_SECRET</code>{" "}
             and OAuth keys in repo-root env, or use dev bypass.
           </CardDescription>
         </CardHeader>
@@ -169,9 +170,7 @@ export function SignInForm(props: {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="submit" disabled={busy}>
               {pending ? "Sending…" : "Send sign-in code"}
             </Button>
@@ -197,9 +196,7 @@ export function SignInForm(props: {
               disabled={busy}
               required
             />
-            {error ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
             {completingSignIn ? (
               <p className="text-sm text-muted-foreground" aria-live="polite">
                 Code accepted — signing you in…

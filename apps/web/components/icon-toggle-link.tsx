@@ -68,14 +68,13 @@ export function IconToggleGroup({
   className?: string;
 }) {
   return (
-    <div
-      role="group"
+    <fieldset
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-md border border-border bg-muted/40 p-0.5",
+        "m-0 inline-flex min-w-0 items-center gap-0.5 rounded-md border border-border bg-muted/40 p-0.5",
         className,
       )}
     >
       {children}
-    </div>
+    </fieldset>
   );
 }

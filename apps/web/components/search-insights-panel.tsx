@@ -51,9 +51,7 @@ export function SearchInsightsPanel(props: {
               </code>
             </p>
             {d.prepared.expansions.length > 0 ? (
-              <p>
-                Adjustments: {d.prepared.expansions.join(" · ")}
-              </p>
+              <p>Adjustments: {d.prepared.expansions.join(" · ")}</p>
             ) : null}
             {d.llmSynonyms.length > 0 ? (
               <p>
@@ -81,7 +79,8 @@ export function SearchInsightsPanel(props: {
               <p className="text-foreground">
                 No listings contain every word in your query. Showing related
                 matches that include at least one term — try fewer words or
-                different keywords (like Google&apos;s &quot;Results for …&quot;).
+                different keywords (like Google&apos;s &quot;Results for
+                …&quot;).
               </p>
             ) : null}
             {d.usedOrFallback ? (

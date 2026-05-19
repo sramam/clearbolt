@@ -1,7 +1,4 @@
-import {
-  hasDevAuthBypass,
-  isBetterAuthConfigured,
-} from "@/lib/auth-config";
+import { hasDevAuthBypass, isBetterAuthConfigured } from "@/lib/auth-config";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 

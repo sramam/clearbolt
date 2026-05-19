@@ -33,13 +33,19 @@ export default async function SearchPage({
   const view = sp.view === "list" ? "list" : "grid";
   const query = sp.q?.trim() ?? "";
   const llmSynonyms = sp.llmSyn
-    ? sp.llmSyn.split(",").map((s) => s.trim()).filter(Boolean)
+    ? sp.llmSyn
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
 
   const session = await requireSessionOrRedirect("/search");
   const hasDatabase = databaseUrlFromEnv() !== null;
   const ingestedCanonicalIds = sp.ingested
-    ? sp.ingested.split(",").map((id) => id.trim()).filter(Boolean)
+    ? sp.ingested
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
     : [];
 
   const {

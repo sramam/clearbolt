@@ -10,15 +10,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import {
-  Bookmark,
-  FolderKanban,
-  PanelLeft,
-  Search,
-} from "lucide-react";
+import { Bookmark, FolderKanban, PanelLeft, Search } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -196,9 +191,7 @@ export function AppShell({
                   className="shrink-0"
                   onClick={toggle}
                   aria-expanded={!collapsed}
-                  aria-label={
-                    collapsed ? "Expand sidebar" : "Collapse sidebar"
-                  }
+                  aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
                   <PanelLeft
                     className={cn(

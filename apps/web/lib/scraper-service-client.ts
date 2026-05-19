@@ -1,4 +1,7 @@
-import type { WebBizBuySellScrapeInput, WebBizBuySellScrapeResult } from "@/lib/bizbuysell-scrape-types";
+import type {
+  WebBizBuySellScrapeInput,
+  WebBizBuySellScrapeResult,
+} from "@/lib/bizbuysell-scrape-types";
 import type { ScrapeProgressEvent } from "@/lib/bizbuysell-scrape-types";
 
 export function scraperServiceUrlFromEnv(): string | null {
@@ -45,9 +48,7 @@ export async function runBizBuySellScrapeViaService(
 
   if (!res.ok || !res.body) {
     const text = await res.text().catch(() => "");
-    throw new Error(
-      text || `Scraper service failed (${res.status})`,
-    );
+    throw new Error(text || `Scraper service failed (${res.status})`);
   }
 
   const reader = res.body.getReader();
@@ -69,7 +70,8 @@ export async function runBizBuySellScrapeViaService(
           listingsIngested: Number(parsed.listingsIngested ?? 0),
           searchEvidenceKey: String(parsed.searchEvidenceKey ?? ""),
           effectiveSearchUrl: String(parsed.effectiveSearchUrl ?? ""),
-          discoveryMode: parsed.discoveryMode as WebBizBuySellScrapeResult["discoveryMode"],
+          discoveryMode:
+            parsed.discoveryMode as WebBizBuySellScrapeResult["discoveryMode"],
           canonicalIds: Array.isArray(parsed.canonicalIds)
             ? (parsed.canonicalIds as string[])
             : [],

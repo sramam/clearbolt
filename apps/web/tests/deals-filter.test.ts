@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  type DealListingDTO,
   buildDealSearchHaystack,
   filterDealsByQuery,
   matchesDealQuery,
-  type DealListingDTO,
 } from "../lib/deals";
 
 const sample: DealListingDTO = {

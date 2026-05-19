@@ -4,9 +4,9 @@ import { requireSessionOrRedirect } from "@/lib/auth-session";
 import { runBizBuySellScrapeWithBrowser } from "@/lib/bizbuysell-scrape";
 import { buildSearchHref } from "@/lib/search-url";
 import { databaseUrlFromEnv } from "@clearbolt/db";
-import { prepareSearchQuery } from "@clearbolt/search";
 import { buildBizBuySellSearchUrl } from "@clearbolt/scraper/bizbuysell-search-url";
 import { serperApiKeyFromEnv } from "@clearbolt/scraper/serper-client";
+import { prepareSearchQuery } from "@clearbolt/search";
 import { redirect } from "next/navigation";
 
 /** One search: expand query → fetch BizBuySell → redirect to FTS-ranked results. */
@@ -47,7 +47,10 @@ export async function runDealSearch(formData: FormData): Promise<void> {
     const searchUrl = buildBizBuySellSearchUrl({
       keywords: prepared.searchKeywords,
     });
-    const limit = Number.parseInt(process.env.CLEARBOLT_SCRAPE_LIMIT ?? "10", 10);
+    const limit = Number.parseInt(
+      process.env.CLEARBOLT_SCRAPE_LIMIT ?? "10",
+      10,
+    );
     const useFixtures =
       process.env.CLEARBOLT_SCRAPE_FIXTURES === "1" ||
       process.env.CLEARBOLT_USE_FIXTURES === "1";

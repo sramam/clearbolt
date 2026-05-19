@@ -1,9 +1,9 @@
 "use client";
 
+import { promoteDealToProject } from "@/app/actions/projects";
 import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
 import { useFormStatus } from "react-dom";
-import { promoteDealToProject } from "@/app/actions/projects";
 
 function SubmitLabel() {
   const { pending } = useFormStatus();
@@ -25,7 +25,11 @@ export function PromoteDealButton(props: {
 
   return (
     <form action={promoteDealToProject}>
-      <input type="hidden" name="canonicalDealId" value={props.canonicalDealId} />
+      <input
+        type="hidden"
+        name="canonicalDealId"
+        value={props.canonicalDealId}
+      />
       <input
         type="hidden"
         name="title"

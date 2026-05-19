@@ -1,8 +1,8 @@
 import type { CanonicalDeal, SourceRecord } from "@clearbolt/core";
 import {
+  type PreparedSearchQuery,
   mergeRelaxedFtsQuery,
   prepareSearchQuery,
-  type PreparedSearchQuery,
 } from "@clearbolt/search";
 import {
   NeonMetadataStore,
@@ -65,11 +65,7 @@ export function matchesDealQueryOr(haystack: string, query: string): boolean {
 }
 
 function tokenizeQuery(query: string): string[] {
-  return query
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 }
 
 export function tokenMatchSummary(
@@ -303,8 +299,7 @@ export async function loadDealsForSearchPage(options: {
     const idCount = (await store.listCanonicalIds()).length;
     const maxScan = options.maxScan ?? Math.min(idCount, 2000);
     const sf = options.sourceFilter?.trim();
-    const adapterFilter =
-      sf && sf !== "all" ? sf : null;
+    const adapterFilter = sf && sf !== "all" ? sf : null;
 
     const corpus = await collectAllDtos(store, maxScan);
     const corpusSourceScoped = filterDealsBySource(corpus, sf);
