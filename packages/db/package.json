@@ -1,0 +1,37 @@
+{
+  "name": "@clearbolt/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./generated": {
+      "types": "./src/generated/prisma/client.d.ts",
+      "import": "./src/generated/prisma/client.js"
+    }
+  },
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.0.0",
+    "@prisma/client": "7.0.0",
+    "@prisma/client-runtime-utils": "7.0.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "dotenv": "^16.4.7",
+    "prisma": "7.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

@@ -1,0 +1,219 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// V0 walking-skeleton metadata (JSON payloads mirror disk layout).
+
+model SourceRecordRow {
+  id      String @id
+  payload Json   @db.JsonB
+
+  @@map("source_records")
+}
+
+model CanonicalDealRow {
+  id      String @id
+  payload Json   @db.JsonB
+
+  @@map("canonical_deals")
+}
+
+/// Lexical search index for canonical deals (FTS + pg_trgm). `search_vector` maintained by DB trigger.
+model DealSearchIndexRow {
+  canonicalId  String   @id @map("canonical_id")
+  adapters     String[]
+  title        String?
+  location     String?
+  document     String
+
+  @@map("deal_search_index")
+}
+
+model DedupMappingRow {
+  keyHash     String @id @map("key_hash")
+  canonicalId String @map("canonical_id")
+
+  @@map("dedup_mappings")
+}
+
+model DomainProfileRow {
+  host    String @id
+  payload Json   @db.JsonB
+
+  @@map("domain_profiles")
+}
+
+/// Team pipeline object ("project"). `workspaceId` = better-auth org id.
+/// See docs/architecture/teams-projects-dealbox.md
+
+model WorkspaceProjectRow {
+  id              String   @id
+  workspaceId     String   @map("workspace_id")
+  createdByUserId String   @map("created_by_user_id")
+  title           String
+  canonicalDealId String?  @map("canonical_deal_id")
+  status          String   @default("candidate")
+  metadata        Json     @default("{}") @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  dispositions UserProjectDispositionRow[]
+
+  @@index([workspaceId])
+  @@map("workspace_projects")
+}
+
+/// Per-user dealbox / anti-dealbox on a project. `bucket`: dealbox | anti_dealbox; `source`: user | ai
+
+model UserProjectDispositionRow {
+  id           String   @id
+  userId       String   @map("user_id")
+  workspaceId  String   @map("workspace_id")
+  projectId    String   @map("project_id")
+  bucket       String
+  source       String
+  aiConfidence Float?   @map("ai_confidence")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  project WorkspaceProjectRow @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([userId, workspaceId, bucket])
+  @@map("user_project_dispositions")
+}
+
+/// User-owned BizBuySell (etc.) search definition inside a team — drives user-specific runs.
+
+model UserMarketQueryRow {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  ownerUserId String    @map("owner_user_id")
+  adapter     String
+  searchUrl   String    @map("search_url")
+  label       String?
+  lastRunAt   DateTime? @map("last_run_at")
+  metadata    Json      @default("{}") @db.JsonB
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([workspaceId, ownerUserId])
+  @@map("user_market_queries")
+}
+
+model User {
+  id            String       @id
+  name          String
+  email         String
+  emailVerified Boolean      @default(false)
+  image         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  members       Member[]
+  invitations   Invitation[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Organization {
+  id          String       @id
+  name        String
+  slug        String
+  logo        String?
+  createdAt   DateTime
+  metadata    String?
+  members     Member[]
+  invitations Invitation[]
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  createdAt      DateTime
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
