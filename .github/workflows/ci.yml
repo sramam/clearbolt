@@ -23,5 +23,16 @@ jobs:
       - run: pnpm run verify:dependency-lag
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - name: Require OpenRouter API key (live dedup tests)
+        run: node scripts/verify-openrouter-ci-secret.mjs
+        env:
+          CI: "true"
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - name: Test (includes OpenRouter live dedup)
+        run: pnpm test
+        env:
+          CI: "true"
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # Pin for stable chat completions in CI; catalog resolution is still exercised by live tests that call GET /models.
+          CLEARBOLT_DEDUP_LLM_MODEL: google/gemma-4-26b-a4b-it:free
       - run: pnpm lint:specs

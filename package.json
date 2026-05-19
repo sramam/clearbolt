@@ -4,20 +4,36 @@
   "type": "module",
   "packageManager": "pnpm@10.16.1",
   "scripts": {
-    "build": "tsc -b",
+    "dev": "pnpm exec tsc -b packages/search packages/scraper apps/cli apps/scraper-service && pnpm --filter @clearbolt/web dev",
+    "scraper-service:dev": "pnpm exec tsc -b packages/scraper apps/cli apps/scraper-service && pnpm --filter @clearbolt/scraper-service dev",
+    "build": "tsc -b && pnpm --filter @clearbolt/db build && pnpm --filter @clearbolt/storage-neon build && pnpm --filter @clearbolt/web build",
     "typecheck": "tsc -b",
+    "pretest": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:specs": "node scripts/lint-specs.mjs",
     "verify:dependency-lag": "node scripts/verify-dependency-lag.mjs",
+    "verify:openrouter-ci": "node scripts/verify-openrouter-ci-secret.mjs",
     "ensure:playwright": "node scripts/ensure-playwright.mjs",
+    "cloud:provision": "node scripts/provision-cloud-env.mjs",
+    "cloud:setup": "node scripts/cloud-setup.mjs",
+    "db:migrate": "node scripts/db-migrate.mjs",
+    "db:migrate:dev": "node scripts/db-migrate-dev.mjs",
+    "db:reset-dev": "node scripts/db-reset-dev.mjs",
+    "fixtures:refresh": "node scripts/refresh-bizbuysell-fixture-cache.mjs",
+    "fixtures:recover": "node scripts/fixtures-recover.mjs",
+    "proxy:test": "node scripts/test-decodo-proxy.mjs",
+    "catalog:probe": "node scripts/test-bizbuysell-catalog-fetch.mjs",
+    "catalog:test-sources": "pnpm exec tsc -b packages/scraper apps/cli && node scripts/test-catalog-sources.mjs",
+    "migrate:scrape-layout": "node scripts/migrate-scrape-layout.mjs",
     "clearbolt": "node ./apps/cli/dist/cli.js"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "22.19.17",
+    "dotenv": "^16.4.7",
     "neonctl": "^2.22.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5",
@@ -28,6 +44,15 @@
       "@types/estree": "1.0.8",
       "@types/node": "22.19.17",
       "rollup": "4.60.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "@prisma/adapter-pg"
+    ]
   }
 }

@@ -1,0 +1,15 @@
+# Decodo (or other) residential gateways — one URL per line.
+# Copy to proxy-endpoints.local.txt (gitignored) and paste your dashboard URLs.
+#
+# https://USER:PASS@us.decodo.com:10001
+# https://USER:PASS@us.decodo.com:10002
+#
+# Then in .env.cloud.local:
+#   CLEARBOLT_PROXY_POLICY=residential
+#   CLEARBOLT_PROXY_ENDPOINTS_FILE=proxy-endpoints.local.txt
+#   CLEARBOLT_PROXY_USERNAME_STYLE=decodo
+#   CLEARBOLT_PROXY_COUNTRY=us
+#   CLEARBOLT_PROXY_SESSION_ID=clearbolt-catalog-1
+#
+# Ports rotate by session key (catalog pages / scrape workers). Single-port setups
+# can use CLEARBOLT_PROXY_RESIDENTIAL=http://USER:PASS@us.decodo.com:10001 instead.

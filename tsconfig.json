@@ -20,9 +20,16 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/observability" },
+    { "path": "./packages/db" },
     { "path": "./packages/storage" },
+    { "path": "./packages/storage-r2" },
+    { "path": "./packages/wiki-fs" },
+    { "path": "./packages/queue" },
+    { "path": "./packages/auth" },
     { "path": "./packages/dedup" },
+    { "path": "./packages/search" },
     { "path": "./packages/scraper" },
+    { "path": "./packages/storage-neon" },
     { "path": "./apps/cli" }
   ]
 }
