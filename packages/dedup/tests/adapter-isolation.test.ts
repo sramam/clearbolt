@@ -4,8 +4,11 @@ import { join } from "node:path";
 import type { SourceRecord } from "@clearbolt/core";
 import { DiskMetadataStore } from "@clearbolt/storage";
 import { describe, expect, it } from "vitest";
-import { BizBuySellDedupKeyer, BusinessBrokerDedupKeyer } from "../src/keyer.js";
 import { ingestSourceRecord } from "../src/ingest.js";
+import {
+  BizBuySellDedupKeyer,
+  BusinessBrokerDedupKeyer,
+} from "../src/keyer.js";
 
 async function tmpRoot(): Promise<string> {
   const tmp = join(

@@ -32,9 +32,9 @@ describe("listing fetch cooldown", () => {
   });
 
   it("defaults to 24 hours", () => {
-    delete process.env.CLEARBOLT_LISTING_FETCH_COOLDOWN_HOURS;
-    delete process.env.CLEARBOLT_LISTING_FETCH_MIN_INTERVAL_MS;
-    delete process.env.CLEARBOLT_LISTING_FETCH_COOLDOWN;
+    process.env.CLEARBOLT_LISTING_FETCH_COOLDOWN_HOURS = undefined;
+    process.env.CLEARBOLT_LISTING_FETCH_MIN_INTERVAL_MS = undefined;
+    process.env.CLEARBOLT_LISTING_FETCH_COOLDOWN = undefined;
     expect(listingFetchMinIntervalMs()).toBe(24 * 60 * 60 * 1000);
   });
 

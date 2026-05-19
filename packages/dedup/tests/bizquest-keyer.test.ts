@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { SourceRecord } from "@clearbolt/core";
+import { describe, expect, it } from "vitest";
 import { BizQuestDedupKeyer } from "../src/keyer.js";
 
 describe("BizQuestDedupKeyer", () => {

@@ -19,8 +19,8 @@ describe("BrokerSiteDedupKeyer", () => {
       parsedFields: {},
     });
     expect(keys[0]?.kind).toBe("url");
-    expect(keys.some((k) => k.kind === "external" && k.adapter === "broker-site")).toBe(
-      true,
-    );
+    expect(
+      keys.some((k) => k.kind === "external" && k.adapter === "broker-site"),
+    ).toBe(true);
   });
 });
