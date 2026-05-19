@@ -11,8 +11,11 @@
   "references": [
     { "path": "../../packages/core" },
     { "path": "../../packages/storage" },
+    { "path": "../../packages/storage-r2" },
     { "path": "../../packages/dedup" },
-    { "path": "../../packages/scraper" }
+    { "path": "../../packages/scraper" },
+    { "path": "../../packages/broker-directory" },
+    { "path": "../../packages/broker-site" }
   ],
   "include": ["src/**/*.ts"]
 }

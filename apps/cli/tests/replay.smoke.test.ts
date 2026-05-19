@@ -6,7 +6,8 @@ import { DiskMetadataStore } from "@clearbolt/storage";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../src/run.js";
 
-const fixtureSearch = "https://www.bizbuysell.com/businesses-for-sale/";
+const fixtureSearch =
+  "https://www.bizbuysell.com/businesses-for-sale/?q=smoke-fixture";
 
 async function canonicalDealsById(
   meta: DiskMetadataStore,
@@ -31,6 +32,9 @@ describe("replay smoke", () => {
     await mkdir(tmp, { recursive: true });
     process.env.DATA_DIR = tmp;
     process.env.CLEARBOLT_SCRAPE_LIMIT = "10";
+    delete process.env.CLEARBOLT_PROXY_ENDPOINTS_FILE;
+    delete process.env.CLEARBOLT_PROXY_RESIDENTIAL;
+    process.env.CLEARBOLT_BIZBUYSELL_INGEST_HTTP = "0";
     try {
       await runCli(["node", "cli", "scrape", fixtureSearch, "--fixtures"]);
       const meta = new DiskMetadataStore(tmp);
