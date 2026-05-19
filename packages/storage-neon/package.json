@@ -1,0 +1,33 @@
+{
+  "name": "@clearbolt/storage-neon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "fixtures:dev-metadata-reset": "node ./scripts/dev-metadata-reset.mjs"
+  },
+  "dependencies": {
+    "@clearbolt/auth": "workspace:*",
+    "@clearbolt/core": "workspace:*",
+    "@clearbolt/db": "workspace:*",
+    "@clearbolt/search": "workspace:*",
+    "@clearbolt/storage": "workspace:*",
+    "@prisma/adapter-pg": "7.0.0",
+    "@prisma/client": "7.0.0",
+    "pg": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "dotenv": "^16.4.7",
+    "typescript": "^5.7.3"
+  }
+}
