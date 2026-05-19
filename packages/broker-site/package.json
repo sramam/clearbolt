@@ -1,0 +1,28 @@
+{
+  "name": "@clearbolt/broker-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@clearbolt/core": "workspace:*",
+    "@clearbolt/dedup": "workspace:*",
+    "@clearbolt/scraper": "workspace:*",
+    "@clearbolt/storage": "workspace:*",
+    "cheerio": "^1.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
