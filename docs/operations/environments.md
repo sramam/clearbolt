@@ -4,10 +4,12 @@ Conventions to set early so they don't fight us later.
 
 ## Environments
 
-- **dev**: local. Disk-backed storage. No Neon, no R2, no CF, no Fly. Single workspace. The V0 walking skeleton runs here.
+- **dev**: local. **V0 default:** disk-backed storage (`DATA_DIR`), no cloud required. **Hybrid dev:** `CLEARBOLT_STORAGE=cloud` + Neon/R2 + better-auth env (`.env.cloud.local` from [cloud-bootstrap.md](./cloud-bootstrap.md)); web on `pnpm dev`, scraper on `pnpm scraper-service:dev`. No CF Pages / Fly deploy required for day-to-day feature work.
 - **preview**: per-PR. Separate Neon branch (Neon's branching feature), separate R2 bucket prefix (`preview-<pr-number>/`), separate CF Pages preview deployment, optional Fly app per PR (or shared preview Fly app).
 - **staging**: shared. Pre-production validation. Real (small) Neon project, separate R2 bucket, separate CF deployment, separate Fly app.
 - **prod**: production. Full Neon project, R2 bucket, CF deployment, Fly cluster.
+
+**CLI bootstrap (V1+):** one Neon project and two R2 buckets (evidence + wiki) per environment, driven by `pnpm cloud:provision` and `neonctl` / `wrangler`. See [cloud-bootstrap.md](./cloud-bootstrap.md). Use **`dev` first** (`--env dev`); repeat for `staging` and `prod` when ready.
 
 Topology details in [../architecture/deployment.md](../architecture/deployment.md).
 
@@ -44,6 +46,7 @@ Topology details in [../architecture/deployment.md](../architecture/deployment.m
 ## CI/CD
 
 - Lint, typecheck, unit tests on every PR.
+- **`OPENROUTER_API_KEY`** repository secret required for CI (`scripts/verify-openrouter-ci-secret.mjs`); powers live dedup tests in `packages/dedup/tests/openrouter-dedup.live.test.ts`. Create at [openrouter.ai/keys](https://openrouter.ai/keys). Local dev: same key in `.env.cloud.local` (optional — live tests skip without it).
 - After `pnpm install`, **`pnpm run verify:dependency-lag`** enforces the ~30-day npm release lag against `pnpm-lock.yaml` (see [dependency-lag.md](./dependency-lag.md)).
 - Conformance suite for `EvidenceStore` / `MetadataStore` / `WikiStore` runs against in-memory + disk + (V1+) Neon test DB + R2 test bucket on every PR.
 - Eval regression for AI tasks on every change to prompts / models / harness.
@@ -60,6 +63,7 @@ Topology details in [../architecture/deployment.md](../architecture/deployment.m
 ## Validation criteria
 
 ### Functional
+- **Given** a developer with authenticated `neonctl` and `wrangler`, **when** they run `pnpm cloud:provision -- --env dev --dry-run`, **then** the script exits 0 and prints the intended Neon project and R2 bucket names. Coverage: smoke. Test: manual ([cloud-bootstrap.md](./cloud-bootstrap.md)).
 - **Given** a fresh `dev` environment, **when** a developer follows the README, **then** the V0 walking skeleton runs end-to-end without any cloud accounts. Coverage: smoke. Test: `docs/onboarding-smoke.md` (manual checklist; verified at every contributor onboarding).
 - **Given** a `preview` environment created for a PR, **when** the preview deploy completes, **then** it has a separate Neon branch, a separate R2 bucket prefix (`preview-<pr>/`), and a separate CF Pages preview URL. Coverage: integration. Test: `.github/workflows/preview-isolation.test.yml` (TBD V1).
 - **Given** any migration in `prisma/migrations/`, **when** `prisma migrate deploy` runs at boot, **then** it is idempotent (re-running on an up-to-date DB is a no-op). Coverage: integration. Test: `services/api/tests/migrate-idempotent.test.ts` (TBD V1).

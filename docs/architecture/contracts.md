@@ -10,6 +10,12 @@ The canonical reference for every interface in Clearbolt. Per-package `agents.md
 - **Conformance suite**: the test suite every backend must pass. Lives in the contract's owner package under `src/conformance/`. Per [principle 5](principles.md#5-specs-include-validation-criteria-negotiated-before-commit), a backend that does not pass the conformance suite does not ship.
 - **Phase**: V0 (local dev only), V1 (production), V2+ (later).
 
+## Identity and tenancy (cross-cutting)
+
+Workspace-scoped contract surfaces take **`workspaceId`** from validated auth ([ADR 0012](../decisions/0012-multi-tenancy-workspace-as-tenant.md), [`packages/auth/agents.md`](../../packages/auth/agents.md)).
+
+**Per-user** ownership and attribution (saved market queries, dealbox / anti-dealbox, capture attribution, user-private artifacts under a workspace) use better-auth **`User.id`**, exposed as **`userId`** in `ClearboltClaims` — **never** email or another login identifier. Users can change email without rewriting query or pipeline rows; invites still use email only for delivery until acceptance binds to `User.id`. Product and table shapes: [teams-projects-dealbox.md](teams-projects-dealbox.md). R2 key prefixes and Neon column rules: [storage.md](storage.md), [`packages/storage/agents.md`](../../packages/storage/agents.md), [`packages/storage-r2/agents.md`](../../packages/storage-r2/agents.md).
+
 ## Storage
 
 ### EvidenceStore
@@ -31,8 +37,20 @@ Structured records and indexes. Plain typed CRUD, no blobs.
 - API: workspaces, source records, canonical deals, brokers, captures, wiki page index, dedup index, audit log, etc.
 - Backends:
   - V0 disk JSON/JSONL (baked into `packages/storage`) — runtime: `node`.
-  - V1+ `packages/storage-neon` (Neon Postgres + Prisma v7; HTTP driver from CF, node-postgres from Fly) — runtime: `both`.
-- Conformance suite: `packages/storage/src/conformance/metadata-store.suite.ts` (TBD V0). Sub-stores (`SourceRecordStore`, `CanonicalDealStore`, `BrokerStore`, `WorkspaceStore`, `WikiPageIndexStore`, `DedupIndex`, `DealEventStore`, `AuditEventStore`) each have their own sub-suite invoked from the parent.
+  - V1+ `packages/storage-neon` (Neon Postgres + Prisma v7; **node `pg` driver today**; CF HTTP driver planned) — runtime: `both`. V1 walking skeleton uses JSONB payload tables (`source_records`, `canonical_deals`, …) mirroring disk layout; team pipeline tables (`workspace_projects`, `user_market_queries`, …) are relational columns.
+- Conformance suite: `packages/storage/src/conformance/metadata-store.suite.ts` — invoked from `packages/storage/tests/disk-metadata-store.test.ts` (disk) and `packages/storage-neon/tests/conformance.test.ts` (Neon when `DATABASE_URL` set). Sub-stores each have sub-suites invoked from the parent.
+
+### DealSearchIndex (lexical, shared cache)
+
+Postgres FTS over canonical deals — not a separate package contract; implemented in `packages/storage-neon` (`deal_search_index` table, migration `20260519000000_deal_search_fts`).
+
+- Owner: `packages/storage-neon` (query/index helpers); DDL in `packages/db`.
+- API: `upsertDealSearchIndex`, `searchDealSearchIndex`, `searchDealSearchIndexOr`, `reindexAllDealSearch`.
+- Query preparation (token expansion, relaxed FTS strings): `packages/search` (`prepareSearchQuery`, optional LLM expand).
+- Backends:
+  - V0 web/CLI without DB: in-memory filter on loaded deals (`apps/web/lib/deals.ts`).
+  - V1+ Neon Postgres FTS + `pg_trgm` — runtime: `node` today; CF read path planned.
+- Tests: `packages/search/tests/query-prepare.test.ts`; Neon FTS integration tests TBD.
 
 ### WikiStore
 
@@ -43,7 +61,7 @@ Per-workspace, per-deal markdown plus shared entity pages.
 - Backends:
   - V0 `packages/wiki-fs` (disk, optional `git init`) — runtime: `node`.
   - V1+ `packages/wiki-r2` (markdown on R2 with content-addressed snapshots; index in `MetadataStore`) — runtime: `both`.
-- Conformance suite: `packages/storage/src/conformance/wiki-store.suite.ts` (TBD V1).
+- Conformance suite: `packages/storage/src/conformance/wiki.suite.ts`. (`assertWikiStoreConformance` exported from `@clearbolt/storage/conformance`.)
 
 ## Ingestion (scraper)
 
@@ -81,8 +99,8 @@ Per-workspace, per-deal markdown plus shared entity pages.
 - Owner: `packages/scraper`
 - API: lease/release a proxy per request; rotation policy on block.
 - Backends:
-  - V0 direct (no proxy) — runtime: `node`.
-  - V1+ residential / datacenter providers via env config.
+  - V0 direct (default) — runtime: `node`.
+  - V0/V1 optional: rotating residential/datacenter via env + proxy endpoints file (`rotating-proxy-fetcher.ts`, `CLEARBOLT_PROXY_*` in `.env.example`).
 - Conformance suite: `packages/scraper/src/conformance/proxy-pool.suite.ts` (TBD V1).
 
 ### Adapter
@@ -91,6 +109,16 @@ Per-workspace, per-deal markdown plus shared entity pages.
 - API: `parseSearchUrl`, `discoverListingRefs`, `fetchListingDetail`, `extractBrokerLinks`.
 - Backends: one per site (bizbuysell, bizquest, businessbroker, businessesforsale, loopnet, bizben, dealstream).
 - Conformance suite: `packages/scraper/src/conformance/adapter.suite.ts` (TBD V0) — every adapter invokes it from its own test file with adapter-specific fixtures under `packages/scraper/adapters/<source>/tests/fixtures/`.
+
+### Scraper HTTP service (V1 dev / Fly)
+
+Remote Playwright + scrape orchestration so Next.js and other clients do not spawn browsers in-process.
+
+- Owner: `apps/scraper-service`
+- API: `GET /health`; `POST /v1/bizbuysell/scrape` and `POST /v1/bizbuysell/catalog-scrape` (NDJSON progress + `result`).
+- Auth: optional `Authorization: Bearer` when `CLEARBOLT_SCRAPER_SERVICE_SECRET` is set.
+- Runtime: `node` (Fly.io prod; local `pnpm scraper-service:dev`).
+- Spec: [`apps/scraper-service/agents.md`](../../apps/scraper-service/agents.md).
 
 ## Capture (universal clipper)
 
@@ -221,12 +249,12 @@ Per-workspace, per-deal markdown plus shared entity pages.
 ### AuthProvider
 
 - Owner: `packages/auth`
-- Wraps better-auth.
-- Workspaces/orgs as tenant boundary.
-- Token shape validated identically by CF Worker and Fly Node runtimes.
+- Wraps better-auth (`createClearboltAuth`, `organization` + `emailOTP` plugins, optional Google/GitHub OAuth).
+- Workspaces/orgs as tenant boundary; target claim shape `ClearboltClaims` (`userId`, `workspaceId`, `workspaceRole`).
+- **Shipped:** Next.js route handler + web middleware via `get-session`; `requireAuth` / `@clearbolt/auth/workers` | `/node` split **TBD**.
 - Pluggable social providers.
-- Runtime: `both`.
-- Conformance suite: `packages/auth/src/conformance/auth-provider.suite.ts` (TBD V1) — plus the cross-runtime token-validation contract test in `packages/auth/tests/cross-runtime-token-validation.test.ts`.
+- Runtime: `both` (target); Node handler wired in [`apps/web`](../../apps/web/agents.md).
+- Conformance suite: `packages/auth/src/conformance/auth-provider.suite.ts` (TBD V1) — plus `packages/auth/tests/exports.test.ts`, `user-id.test.ts`, and cross-runtime token test `packages/auth/tests/cross-runtime-token-validation.test.ts` (TBD V1).
 
 ## Platform plumbing
 
@@ -241,11 +269,12 @@ Per-workspace, per-deal markdown plus shared entity pages.
 
 ### SearchIndex (BM25)
 
-- Owner: `packages/search`
+- Owner: `packages/search` (contract); **Postgres FTS execution** in `packages/storage-neon` (`deal_search_index`).
 - Backends:
-  - V0 in-memory MiniSearch — runtime: `node`.
-  - V1+ Postgres FTS (Neon) — runtime: `both`.
-- Conformance suite: `packages/search/src/conformance/search-index.suite.ts` (TBD V1).
+  - V0 / no DB: in-memory token filter on loaded deals — runtime: `node`.
+  - V1+ (partial): Postgres FTS + `pg_trgm` on Neon — runtime: `node` today; CF HTTP driver planned.
+  - Query prep only (always): `prepareSearchQuery`, optional `expandSearchQueryWithLlm` in `packages/search`.
+- Conformance suite: `packages/search/src/conformance/search-index.suite.ts` (TBD V1). Query prep: `packages/search/tests/query-prepare.test.ts`.
 
 ### VectorStore
 
@@ -320,3 +349,7 @@ This inventory itself is a spec — its correctness is the foundation of "plugga
 
 ### Phase markers
 - **Given** any contract, **when** read, **then** every backend has a phase marker (`V0`, `V1`, `V2+`). Coverage: lint. Test: `scripts/lint-specs.mjs::backend_has_phase_annotation` (TBD V1).
+
+### Identity and tenant keys
+- **Given** any API or `MetadataStore` path that persists rows "per user" inside a workspace, **when** a row is written, **then** the owner column (or R2 path segment for user-private blobs) is internal `userId` / `User.id` from auth, not email. Coverage: integration. Test: `packages/storage-neon/tests/user-scoped-owner-is-user-id.test.ts`.
+- **Given** a valid session per the auth contract (`ClearboltClaims`), **when** the same account changes primary email in better-auth, **then** `userId` is unchanged and user-scoped data still resolves to that account. Coverage: integration. Test: `packages/auth/tests/email-change-preserves-user-scoped-rows.test.ts`.

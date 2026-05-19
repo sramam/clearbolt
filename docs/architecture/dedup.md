@@ -26,7 +26,7 @@ Implementation in [`packages/dedup/agents.md`](../../packages/dedup/agents.md).
 
 ## V0 pipeline (programmatic only)
 
-V0 must work without embeddings or LLM calls. ADR: [../decisions/0002-dedup-v0.md](../decisions/0002-dedup-v0.md).
+V0 must work without embeddings. LLM calls are **optional locally** (OpenRouter blend when `OPENROUTER_API_KEY` is set). **CI requires** `OPENROUTER_API_KEY` and runs live dedup integration tests. ADR: [../decisions/0002-dedup-v0.md](../decisions/0002-dedup-v0.md).
 
 1. **Normalize** every source record into a stable shape:
    - URL: strip tracking/query params, normalize host case, drop trailing slashes.
@@ -49,12 +49,26 @@ V0 must work without embeddings or LLM calls. ADR: [../decisions/0002-dedup-v0.m
    - Strong match: any of `urlKey`, `externalKey`, `brokerListingKey`, `phoneKey`, `emailKey` equals an existing canonical deal -> attach as a new source on that deal.
    - Weak match: `geoPriceKey` + `titleFingerprint` agreement -> mark as a candidate, run lexical scoring.
 
-4. **Lexical scoring** (no AI) for weak matches via `lexical` + `numeric` + `geo` scorers.
+4. **Lexical scoring** (no AI) for weak matches via `lexical` + `numeric` + `geo` scorers — implemented as `scorePair` in [`packages/dedup`](../../packages/dedup/agents.md).
+
+4b. **Optional OpenRouter blend** — when `OPENROUTER_API_KEY` is set, `ingestSourceRecord` uses `scorePairAsync`, which calls OpenRouter chat completions. **`CLEARBOLT_DEDUP_LLM_MODEL`** pins a model; **when unset**, a **free** text model is chosen from the live [models API](https://openrouter.ai/api/v1/models) (cached), preferring Gemma / Nemotron / Qwen / DeepSeek / MiniMax / `gpt-oss` free slugs when available ([sorted UI](https://openrouter.ai/models?output_modalities=text&order=pricing-low-to-high)). If resolution fails, falls back to tiny paid Llama 3.2 1B. CI sets `OPENROUTER_API_KEY` from GitHub Actions secrets and pins a free chat model (see `.github/workflows/ci.yml`).
+
+4c. **Body fingerprint + optional embeddings** — each scrape computes `bodyFingerprint` (sha256 of normalized visible HTML text) on the listing blob. Re-scrapes that merge onto the same canonical via URL/external keys set `contentUpdated` when the fingerprint differs from the **representative** source. Optional: OpenRouter **`POST /api/v1/embeddings`** (same API key) with `CLEARBOLT_DEDUP_EMBED=1`; **`CLEARBOLT_DEDUP_EMBED_MODEL`** pins a slug, and **when unset** the implementation calls the public **`GET /api/v1/embeddings/models`** list (no key), prefers free embedding models (`DEDUP_FREE_EMBED_MODEL_PREFERENCES`), then cheapest paid by `pricing.prompt`, else falls back to `openai/text-embedding-3-small`. Resolved model ids are cached (same TTL envs as the LLM catalog). Stores `bodyEmbedding` on the `SourceRecord` for pairwise cosine in `scorePair` / `scorePairAsync` when both sides share embedding dimension. V1 moves vectors to pgvector per [0011](../decisions/0011-vector-pgvector-on-neon-v1.md).
 
 5. **Decision**:
    - Above auto-merge threshold: attach the source to the existing canonical deal; update last-seen and field-level provenance.
    - Below review threshold: create a new canonical deal; persist sub-threshold candidate pairs as `MergeCandidate` rows so V1's vector pass can re-evaluate without a full re-scan.
    - In between: write to a `dedup_review` queue (file in V0, table in V1).
+
+## Listing fetch cooldown (scrape / catalog resume)
+
+Before fetching listing HTML, scrape pipelines call `shouldSkipListingFetch` in `packages/dedup` so catalog resumes do not re-hit unchanged pages:
+
+- Default **24h** minimum interval between detail fetches (`CLEARBOLT_LISTING_FETCH_COOLDOWN_HOURS` / `CLEARBOLT_LISTING_FETCH_MIN_INTERVAL_MS`; disable with `CLEARBOLT_LISTING_FETCH_COOLDOWN=0`).
+- **`CLEARBOLT_LISTING_FETCH_SKIP_KNOWN=1`** — skip listings that already resolve to a canonical via dedup keys (fast resume).
+- Per-listing status on disk/R2: `listing-ingest-state/<adapter>/<externalId>/state.json` (`ingested` \| `failed` \| `skipped_known` \| `skipped_fresh`) in `packages/scraper`.
+
+Tests: `packages/dedup/tests/listing-fetch-cooldown.test.ts`.
 
 ## Multi-source preservation rule
 

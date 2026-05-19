@@ -25,7 +25,8 @@ V1 adds a `vector` contributor (and optionally `llm-judge`) without rewriting pr
 
 ## Consequences
 
-- V0 dedup runs entirely without paid API calls.
+- V0 dedup runs without paid API calls **when `OPENROUTER_API_KEY` is unset** (local walking skeleton without network).
+- When `OPENROUTER_API_KEY` is set, `ingestSourceRecord` may call OpenRouter for a cheap `p_same` signal blended into `scorePairAsync` (see `packages/dedup/agents.md`). **CI always sets this secret** and runs live integration tests; treat OpenRouter as an interim lever until AI Gateway + `ModelProvider` own the call.
 - Dedup recall is lower than it will be in V1 (rewritten/syndicated descriptions across sites can fool lexical-only matching).
 - The persisted `MergeCandidate` queue means V1 vector pass catches the historical misses without a full re-scan — important because re-scanning a year of history at scale would be expensive.
 - New scorers (any future signal) plug in the same way.

@@ -11,6 +11,8 @@ The two layers are joined by `workspaceFinds` and `workspaceCaptures` (workspace
 
 ## Workspaces and identity
 
+Product **teams** are **workspaces** (tenant boundary; [ADR 0012](../decisions/0012-multi-tenancy-workspace-as-tenant.md)).
+
 ```
 Workspace
   id, name, type, createdAt
@@ -22,7 +24,11 @@ AuthSession
   id, userId, workspaceId (active), tokenClaims
 ```
 
-Better-auth provides `User`, `AuthSession`, social providers, and orgs/workspaces. `packages/auth` wraps it ([packages/auth/agents.md](../../packages/auth/agents.md)).
+Better-auth provides `User`, `AuthSession`, social providers, and orgs/workspaces. `packages/auth` wraps it ([packages/auth/agents.md](../../packages/auth/agents.md)). Product UI may say **team**; storage and ADR 0012 use **workspace** as the tenant id (`workspaceId`). Pipeline **projects**, per-user **dealbox / anti-dealbox**, and **user-owned market queries** (BizBuySell URLs, etc.): [teams-projects-dealbox.md](teams-projects-dealbox.md). Neon tables: `workspace_projects`, `user_project_dispositions`, `user_market_queries` (`packages/db/prisma`).
+
+### Stable user id (not email)
+
+Columns that attribute rows to a person (`userId` on `Membership`, `owner_user_id` on `UserMarketQuery`, `user_id` on `UserProjectDisposition`, `capturedByUserId` on `WorkspaceCapture`, etc.) store better-auth **`User.id`** — the same value as JWT `ClearboltClaims.userId`. **Do not** use `User.email` (or any OAuth `email` claim) as a foreign key or stable owner key: email can change; `User.id` does not for the same account. Org **invites** still address recipients by email; once accepted, persisted ownership uses `User.id` only. Contracts inventory: [contracts.md](contracts.md#identity-and-tenancy-cross-cutting); storage layout: [storage.md](storage.md).
 
 ## Source records and canonical deals
 
@@ -78,7 +84,57 @@ BrokerListing                                   # association table
   brokerId, canonicalDealId, sourceRecordIds: string[]
 ```
 
-Broker enrichment is its own workflow: from a `Broker` row, the ingestion harness can crawl the broker's website (where allowed) to find more listings and attach them.
+Broker enrichment is its own workflow: from a `Broker` row, the ingestion harness can crawl the broker's website (where allowed) to find more listings and attach them. Marketplace adapters surface brokers via `extractBrokerLinks`; broker-direct enumeration lives in [`packages/broker-directory`](../../packages/broker-directory/agents.md) per [ADR 0016](../decisions/0016-broker-direct-ingestion-lane.md).
+
+### Broker materialization workflow
+
+**Inputs** (any of these may create or update a shared `Broker` row):
+
+| Input | Typical source | Fields used |
+|-------|----------------|-------------|
+| `BrokerEndpoint` | `Adapter.extractBrokerLinks` after listing or broker-profile fetch | `profileUrl`, `name`, `firm`, `website`, `phone`, `email` |
+| `parsedFields.brokerName` (+ optional `brokerFirm`) | Listing detail `SourceRecord` | Contact person + firm string on the listing page |
+| `BrokerCandidate` | `BrokerDirectoryAdapter.discoverBrokers` ([broker-directory](../../packages/broker-directory/agents.md)) | `normalizedName`, `websiteDomain`, `profileUrl`, `firmName` |
+
+**Dedup keys** (all must match for an automatic merge; otherwise a human-review queue row is created):
+
+1. **Primary:** `websiteDomain` (registrable domain, lowercased) when present on both sides.
+2. **Secondary:** `normalizedName` + `firmId` (or normalized firm name when `BrokerFirm` is not yet materialized).
+3. **Tertiary:** marketplace `profileUrl` per adapter (`bizbuysell`, `bizquest`, `dealstream`, …) stored in `Broker.sources[]`.
+
+`normalizedName` is a lowercase, punctuation-stripped display name used only for matching — `displayName` preserves the source spelling.
+
+**`BrokerFirm` materialization:** when a broker observation includes a firm name or `worksFor` JSON-LD, upsert `BrokerFirm` by `normalizedName` + `websiteDomain`, then set `Broker.firmId`.
+
+**`BrokerListing` population:** after a `SourceRecord` is ingested and attached to a `CanonicalDeal`, if the record carries `parsedFields.brokerId` (post-materialization) or resolvable broker keys, upsert `BrokerListing(brokerId, canonicalDealId)` and append the `sourceRecordId`. Broker-profile inventory parsers (e.g. BizBuySell active listings on a profile page) enqueue listing fetches first; `BrokerListing` rows are written when those listings ingest.
+
+**`enrichmentStatus` transitions:**
+
+```
+pending → enriched     # broker-site crawl succeeded and ≥1 listing SourceRecord ingested
+pending → no-website   # no public site, robots disallow, or empty listings index
+pending → error        # repeated fetch/parse failures past cooldown
+```
+
+#### Worked example (marketplace path)
+
+1. BizBuySell listing ingest produces `SourceRecord` with `parsedFields.brokerName = "Jane Smith"`, `brokerFirm = "Pacific Business Advisors"`, `brokerProfileUrl = https://www.bizbuysell.com/business-broker/jane-smith/12345/`.
+2. Materializer matches or creates `BrokerFirm` for Pacific Business Advisors, then `Broker` for Jane Smith with `sources: [{ adapter: "bizbuysell", profileUrl: "…/12345/" }]`.
+3. `CanonicalDeal.brokerId` is set; `BrokerListing` links broker ↔ deal ↔ source record.
+4. Optional: broker-profile fetch discovers three more active listing refs on Jane's profile; each listing ingests and adds `BrokerListing` rows (dedup may fold them into existing `CanonicalDeal`s).
+
+The same `Broker` row is later updated (not duplicated) when IBBA directory enumeration surfaces the same `websiteDomain` in the broker-direct lane ([ADR 0016](../decisions/0016-broker-direct-ingestion-lane.md)).
+
+### Broker directory refs (marketplace catalogs)
+
+State/regional **listing** catalogs yield `ListingRef`s. **Broker directory** catalogs (e.g. BizBuySell `/business-brokers/{state}/`) yield `BrokerDirectoryRef` — same pagination machinery as listing catalogs, different discovery target:
+
+```
+BrokerDirectoryRef
+  profileUrl, externalBrokerId?, name?, firm?, state?, sourceAdapter
+```
+
+Spec shape lives in marketplace adapter `agents.md` files; implementation target: `packages/scraper/src/adapters/types.ts` (alongside `ListingRef`).
 
 ## Listing lifecycle and change tracking
 
@@ -232,9 +288,25 @@ AuditEvent
   action, target, payload: jsonb, createdAt
 ```
 
-## Prisma v7 schema sketch (V1+)
+## Implemented schema today (`packages/db`)
 
-This is illustrative — exact schema lands in `packages/storage-neon/prisma/schema.prisma`. The shape:
+The checked-in Prisma schema is a **walking skeleton** — not the full V1 sketch below. Migrations:
+
+- `20260518000000_init` — metadata JSONB + pipeline + better-auth.
+- `20260519000000_deal_search_fts` — shared lexical index.
+
+| Model / table | Shape today |
+|---------------|-------------|
+| `SourceRecordRow`, `CanonicalDealRow`, `DedupMappingRow`, `DomainProfileRow` | `id` + `payload` JSONB (disk layout in Postgres) |
+| `DealSearchIndexRow` | `canonical_id`, `adapters[]`, `title`, `location`, `document`, `search_vector` (trigger-maintained) |
+| `WorkspaceProjectRow`, `UserProjectDispositionRow`, `UserMarketQueryRow` | relational columns per [teams-projects-dealbox.md](teams-projects-dealbox.md) |
+| `User`, `Session`, `Organization`, `Member`, `Invitation`, … | better-auth (merged via `pnpm --filter @clearbolt/auth auth:schema`) |
+
+Brokers, `DealEvent`, `MergeCandidate`, wiki index, pgvector siblings, and most workspace analytics tables from the sketch below are **not migrated yet**. Add them only through `packages/db` migrations when the corresponding surface ships.
+
+## Prisma v7 schema sketch (V1+ target)
+
+This is illustrative — exact schema lands in `packages/db/prisma/schema.prisma`. The shape:
 
 ```prisma
 model Workspace {
@@ -324,7 +396,7 @@ model CanonicalDealEmbedding {
 }
 ```
 
-V0 mirrors this shape in JSON files under `data/` with manual indexes. The Prisma v7 schema is the V1 cutover artifact.
+V0 mirrors the metadata shape in JSON files under `data/` with manual indexes. The full relational sketch below is the **V1+ target**; the implemented subset lives in `packages/db/prisma/schema.prisma` (see [Implemented schema today](#implemented-schema-today-packagesdb)).
 
 ## Internationalization, currency, region
 
@@ -346,6 +418,11 @@ V1 is US-centric. Design records so adding regions later is not a rewrite.
 
 ## Validation criteria
 
+### Brokers
+- **Given** a `SourceRecord` with `parsedFields.brokerName` and a resolvable `brokerProfileUrl`, **when** broker materialization runs after ingest, **then** exactly one `Broker` row exists for that profile URL and `CanonicalDeal.brokerId` points to it. Coverage: integration. Test: `packages/storage-neon/tests/broker-materialization.test.ts` (TBD V1).
+- **Given** two observations with the same `websiteDomain` and compatible `normalizedName`, **when** materialized from different adapters, **then** they share one `Broker` row and `sources` contains both adapters. Coverage: integration. Test: `packages/storage-neon/tests/broker-dedup-by-domain.test.ts` (TBD V1).
+- **Given** a `BrokerListing` row, **when** queried, **then** `brokerId`, `canonicalDealId`, and every `sourceRecordId` reference real rows. Coverage: integration. Test: `packages/storage-neon/tests/broker-listing-integrity.test.ts` (TBD V1).
+
 ### Functional
 - **Given** the V1+ Prisma schema, **when** generated, **then** every model in this doc has a corresponding Prisma model with the same fields and indexes (drift = bug). Coverage: lint. Test: `packages/storage-neon/tests/schema-vs-data-model.test.ts` (TBD V1).
 - **Given** any `SourceRecord`, **when** written, **then** `evidenceSha256` is unique across all records (content-addressed dedup at the blob layer). Coverage: conformance. Test: `packages/storage/src/conformance/source-record-store.suite.ts::sha256_unique`.
@@ -355,6 +432,7 @@ V1 is US-centric. Design records so adding regions later is not a rewrite.
 ### Boundary
 - **Given** any workspace-scoped table (Workspace*, BuyerFinancialProfile, WorkspaceCapture, WikiPage, etc.), **when** queried without an explicit `workspaceId` filter, **then** the query is rejected at the data-access layer. Coverage: lint + runtime guard. Test: `packages/storage-neon/tests/workspace-scope-required.test.ts` (TBD V1).
 - **Given** the shared cache (CanonicalDeal, Broker, BrokerFirm, BrokerListing, DealEvent with `workspaceVisibility: 'shared'`), **when** queried, **then** no `workspaceId` is required (these are global). Coverage: integration. Test: `packages/storage-neon/tests/shared-cache-readable.test.ts` (TBD V1).
+- **Given** `UserMarketQuery`, `UserProjectDisposition`, `Membership`, or `WorkspaceCapture` rows, **when** inspected, **then** user-attribution columns store internal `User.id` (JWT `userId`) and never use email as the persisted owner key. Coverage: integration. Test: `packages/storage-neon/tests/user-scoped-owner-is-user-id.test.ts`.
 
 ### Internationalization
 - **Given** any money-typed field, **when** written, **then** it carries an explicit ISO 4217 currency code (no implicit USD). Coverage: lint. Test: `packages/core/tests/money-fields-iso4217.test.ts` (TBD V1).

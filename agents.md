@@ -27,9 +27,11 @@ apps/              — applications (extension, web app)
 - [docs/architecture/contracts.md](docs/architecture/contracts.md) — every interface and its current/planned backends.
 - [docs/architecture/deployment.md](docs/architecture/deployment.md) — hybrid CF + Fly topology.
 - [docs/architecture/data-model.md](docs/architecture/data-model.md) — entities, relationships, Prisma v7 sketch.
+- [docs/architecture/teams-projects-dealbox.md](docs/architecture/teams-projects-dealbox.md) — teams (= workspaces), projects, per-user dealbox / anti-dealbox, user-scoped market queries (**`user.id`**, never email), promotion → AI research + documents.
 - [docs/architecture/storage.md](docs/architecture/storage.md) — `EvidenceStore` / `MetadataStore` / `WikiStore`.
 - [docs/architecture/dedup.md](docs/architecture/dedup.md) — compositional `Scorer`, V0 deterministic + lexical, V1+ vector.
 - [docs/architecture/ingestion.md](docs/architecture/ingestion.md) — adapter pattern, freshness, parser drift.
+- [docs/architecture/ingestion-freshness.md](docs/architecture/ingestion-freshness.md) — catalog vs detail, tiered refresh, fingerprints.
 - [docs/architecture/harness.md](docs/architecture/harness.md) — Flue-shaped agent harness contract.
 - [docs/architecture/wiki.md](docs/architecture/wiki.md) — Karpathy-style per-deal LLM wiki.
 - [docs/architecture/capture.md](docs/architecture/capture.md) — universal clipper pipeline.
@@ -55,6 +57,7 @@ apps/              — applications (extension, web app)
 
 - [docs/phases/V0.md](docs/phases/V0.md) — local-dev only, scraper-only walking skeleton.
 - [docs/phases/V1.md](docs/phases/V1.md) — production: hybrid CF+Fly, Neon + R2, scraper, dedup, wiki, capture API, transcripts, web app.
+- [docs/phases/V1.5.md](docs/phases/V1.5.md) — broker-direct rollout (franchise + state DRE), pocket-listing freshness, telemetry hardening.
 - [docs/phases/V2.md](docs/phases/V2.md) — multi-user, browser extension, outreach, comps, container sandboxes.
 - [docs/phases/V3-plus.md](docs/phases/V3-plus.md) — provider/deal-team marketplace, public API/webhooks, CRM integrations.
 
@@ -66,11 +69,12 @@ apps/              — applications (extension, web app)
 - [docs/operations/failure-modes.md](docs/operations/failure-modes.md)
 - [docs/operations/audit-activity.md](docs/operations/audit-activity.md)
 - [docs/operations/dependency-lag.md](docs/operations/dependency-lag.md) — npm release lag (~30 days), Renovate, and lockfile verification.
+- [docs/operations/cloud-bootstrap.md](docs/operations/cloud-bootstrap.md) — Neon, R2, Resend, Fly scraper-service, env files (`.env.cloud.local`).
 
 ### Decisions
 
 - [docs/decisions/open.md](docs/decisions/open.md) — open questions / TBDs.
-- ADRs: [0001](docs/decisions/0001-storage-split.md) storage split, [0002](docs/decisions/0002-dedup-v0.md) dedup V0, [0003](docs/decisions/0003-multi-source-preservation.md) multi-source preservation, [0004](docs/decisions/0004-extension-universal-user-capture.md) universal user-capture, [0005](docs/decisions/0005-harness-borrow-flue-patterns.md) Flue-shaped harness, [0006](docs/decisions/0006-pluggable-everything.md) pluggable everything, [0007](docs/decisions/0007-per-deal-llm-wiki.md) per-deal LLM wiki, [0008](docs/decisions/0008-html-to-markdown-defuddle.md) Defuddle, [0009](docs/decisions/0009-transcript-tiered-pipeline.md) tiered transcripts, [0010](docs/decisions/0010-deployment-hybrid-cf-fly.md) hybrid CF+Fly, [0011](docs/decisions/0011-vector-pgvector-on-neon-v1.md) pgvector on Neon, [0012](docs/decisions/0012-multi-tenancy-workspace-as-tenant.md) workspace tenant boundary, [0013](docs/decisions/0013-apify-as-optional-fallback.md) Apify optional fallback, [0014](docs/decisions/0014-telemetry-stack.md) telemetry stack (VM + OTel + self-hosted PostHog + admin UI), [0015](docs/decisions/0015-specs-include-validation-criteria.md) specs include validation criteria.
+- ADRs: [0001](docs/decisions/0001-storage-split.md) storage split, [0002](docs/decisions/0002-dedup-v0.md) dedup V0, [0003](docs/decisions/0003-multi-source-preservation.md) multi-source preservation, [0004](docs/decisions/0004-extension-universal-user-capture.md) universal user-capture, [0005](docs/decisions/0005-harness-borrow-flue-patterns.md) Flue-shaped harness, [0006](docs/decisions/0006-pluggable-everything.md) pluggable everything, [0007](docs/decisions/0007-per-deal-llm-wiki.md) per-deal LLM wiki, [0008](docs/decisions/0008-html-to-markdown-defuddle.md) Defuddle, [0009](docs/decisions/0009-transcript-tiered-pipeline.md) tiered transcripts, [0010](docs/decisions/0010-deployment-hybrid-cf-fly.md) hybrid CF+Fly, [0011](docs/decisions/0011-vector-pgvector-on-neon-v1.md) pgvector on Neon, [0012](docs/decisions/0012-multi-tenancy-workspace-as-tenant.md) workspace tenant boundary, [0013](docs/decisions/0013-apify-as-optional-fallback.md) Apify optional fallback, [0014](docs/decisions/0014-telemetry-stack.md) telemetry stack (VM + OTel + self-hosted PostHog + admin UI), [0015](docs/decisions/0015-specs-include-validation-criteria.md) specs include validation criteria, [0016](docs/decisions/0016-broker-direct-ingestion-lane.md) broker-direct ingestion lane, [0017](docs/decisions/0017-scrape-run-filesystem-layout.md) scrape-run filesystem layout.
 
 ## Architectural principles digest
 
@@ -114,7 +118,10 @@ Per-package `agents.md` files own their own contracts. Runtime targets: `node` =
 | Package | Owns | Runtime |
 |---------|------|---------|
 | [`packages/scraper`](packages/scraper/agents.md) + adapters | `Fetcher`, `ThrottleManager`, `WafDetector`, `ProxyPool`, per-source `Adapter`. HTTP-first + Playwright wisdom (AIA, AIMD, WAF, `needsBrowser`). | node |
+| [`packages/broker-directory`](packages/broker-directory/agents.md) | `BrokerDirectoryAdapter` — enumerate broker firms from IBBA, franchise locators, state DRE, marketplace broker directories. | node |
+| [`packages/broker-site`](packages/broker-site/agents.md) | `BrokerSiteCrawler` — broker-owned website listing discovery; LLM `broker-site-extract` skill + franchise parser plugins. | node |
 | [`packages/storage`](packages/storage/agents.md) | `EvidenceStore`, `MetadataStore`, `WikiStore` contracts; V0 disk default. | both |
+| [`packages/db`](packages/db/agents.md) | Prisma schema, migrations, shared `PrismaClient` (only DB DDL entrypoint). | node |
 | [`packages/storage-r2`](packages/storage-r2/agents.md) | `EvidenceStore` over Cloudflare R2 / S3. | both |
 | [`packages/storage-neon`](packages/storage-neon/agents.md) | `MetadataStore` over Neon + Prisma v7; pgvector tables. | both |
 | [`packages/wiki-fs`](packages/wiki-fs/agents.md) | `WikiStore` over disk (V0 / dev). | node |
@@ -132,6 +139,9 @@ Per-package `agents.md` files own their own contracts. Runtime targets: `node` =
 | [`packages/ai`](packages/ai/agents.md) | Vercel AI SDK + AI Gateway + `ModelProvider` routing + `Embedder`; **Zod** for structured outputs and shared DTOs with the harness. | both |
 | [`packages/observability`](packages/observability/agents.md) | `Logger` + `Tracer` + `MetricsSink` (Layers 1+2 of telemetry stack). | both |
 | [`packages/telemetry`](packages/telemetry/agents.md) | `ProductEvents` (Layer 3: product analytics + agent run traces, self-hosted PostHog default). V0 docs only; V1+ scaffold. | both |
+| [`apps/web`](apps/web/agents.md) | Next.js web app (V1+; CF Pages): search, sign-in, deal scrape orchestration. | both |
+| [`apps/scraper-service`](apps/scraper-service/agents.md) | Fly/local HTTP service: BizBuySell scrape + catalog (Playwright), NDJSON progress. | node |
+| [`apps/cli`](apps/cli/src/run.ts) | `clearbolt` CLI: scrape, catalog, domain profile (V0 walking skeleton). | node |
 | [`apps/extension`](apps/extension/agents.md) | Universal browser clipper (Manifest v3, V2). | browser |
 
 ## Hybrid deployment one-liner

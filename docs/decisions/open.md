@@ -1,20 +1,21 @@
 # Open decisions
 
-Resolved decisions live as ADRs (`0001` … `0015`). Items here are still in motion. Per principle 5 ([principles.md §5](../architecture/principles.md#5-specs-include-validation-criteria-negotiated-before-commit)), every open decision specifies what observation would resolve it — these double as the falsifiability criteria for "open" status.
+Resolved decisions live as ADRs (`0001` … `0016`). Items here are still in motion. Per principle 5 ([principles.md §5](../architecture/principles.md#5-specs-include-validation-criteria-negotiated-before-commit)), every open decision specifies what observation would resolve it — these double as the falsifiability criteria for "open" status.
 
 | Topic | Notes | Resolved when |
 |-------|-------|---------------|
 | App framework | Next.js assumed for the web app. | First V1 web PR lands and CI is green; alternative (Remix / React Router 7) explicitly considered and rejected in commit message or follow-up ADR. |
-| ORM/query layer V0 | Disk JSON in V0; Prisma v7 starts at V1. | Prisma v7 stability for Neon HTTP driver verified by passing `MetadataStore` conformance suite against Neon; documented in V1 cutover notes. |
-| Search engine | V0 in-memory MiniSearch; V1+ Postgres FTS on Neon. Quickwit deferred until log-style scale demands it. | Postgres FTS implementation passes `SearchIndex` conformance with V1 query latency targets met; Quickwit revisit triggered if FTS p95 > 200ms at sustained volume. |
+| ORM/query layer V0 | Disk JSON in V0 CLI; **Prisma v7 landed** for cloud/hybrid dev (`packages/db`, JSONB metadata + pipeline + FTS). Full relational cutover to the [data-model sketch](../architecture/data-model.md) is incremental. | Neon `MetadataStore` conformance green in CI with `DATABASE_URL`; CF HTTP driver bound for edge reads; remaining entities migrated per feature ADR. |
+| Dedup LLM routing | Interim: optional OpenRouter cheap chat (`OPENROUTER_API_KEY`, `CLEARBOLT_DEDUP_LLM_MODEL`, `CLEARBOLT_DEDUP_LLM_WEIGHT`) blended in `packages/dedup` `scorePairAsync`; **CI requires** `OPENROUTER_API_KEY` secret and runs live tests (`openrouter-dedup.live.test.ts`). | Same behavior behind `packages/ai` `ModelProvider` + AI Gateway with cost attribution; OpenRouter-only path removed or demoted to dev fallback. |
+| Search engine | V0 in-memory filter without DB; **Postgres FTS partial** (`deal_search_index` + `packages/search` query prep). Quickwit deferred. | Full `SearchIndex` conformance suite + CF read path; Quickwit revisit if FTS p95 > 200ms at sustained volume. |
 | Workspace personalization model | Feedback signals, decay rules, mute scopes, snooze policy. | V1 ranking work ships with documented decay function, mute scope semantics, and a documented golden-set of personalization fixtures passing. |
 | Job queue | V0 in-memory + node-cron; V1+ pg-boss on Neon. CF Queues adapter as V2+ option. | pg-boss tables provisioned on Neon, conformance suite passes, V1 web app uses it for at least one async write path. |
 | Auth and SSO | Better-auth via `packages/auth` for V1. SSO/SAML in V2. | V1 — `AuthProvider` conformance against better-auth passes for both runtimes. V2 — SSO/SAML providers added behind the same contract. |
 | Hosting | Decided: hybrid CF Pages + CF Workers + Fly.io ([ADR 0010](0010-deployment-hybrid-cf-fly.md)). Specific Fly regions TBD. | Fly region pinned (likely `iad` for primary; secondaries based on user distribution); documented in `docs/operations/environments.md`. |
 | CI/CD | GitHub Actions assumed. | First green V1 CI run on GitHub Actions; alternative considered and rejected in `docs/operations/environments.md` or follow-up ADR. |
-| Secrets manager / KMS | TBD — Doppler vs SST vs 1Password. | V1 cutover requires secrets management; decision recorded as ADR 0016 (or similar) before V1 production deploy. |
+| Secrets manager / KMS | TBD — Doppler vs SST vs 1Password. | V1 cutover requires secrets management; decision recorded as ADR 0017 (or similar) before V1 production deploy. |
 | Backup and DR policy | Neon's automatic backups + R2 versioning enabled in prod. Quarterly restore test cadence to confirm. | First quarterly restore test passes end-to-end; runbook in `docs/operations/`. |
-| Proxy/provider strategy | V0 direct only. V1+ residential / datacenter providers via env config. | Specific vendor selected (or "no proxy" confirmed acceptable) when V1 hits sustained block rate; vendor recorded as ADR. |
+| Proxy/provider strategy | V0 direct default; **optional rotating proxy** via env + endpoints file (Decodo/residential documented in `.env.example`). | Vendor choice recorded as ADR when production Fly scraper runs sustained catalog at target block rate. |
 | Off-market data sources | Beyond V1 (Google Maps, state license DBs, SOS, county data, SAM.gov, contractor DBs). | Per-source ADR for each as it ships; remains "open" until at least one off-market source is in V2. |
 | Buyer financial profile schema | Drafted in [data-model.md](../architecture/data-model.md); finalize in V1 ranking work. | V1 ranking PR lands; schema documented and Prisma migration applied. |
 | Financing assumptions/calculation policy | Whether Clearbolt provides calculations only or connects to lending/prequalification (regulated). | Legal review on regulatory exposure; recorded as ADR before V2 outreach work. |
@@ -26,6 +27,7 @@ Resolved decisions live as ADRs (`0001` … `0015`). Items here are still in mot
 | Geography taxonomy | Pick MSA/county/zip rules; ship in V1 normalization layer. | V1 normalization passes for top-50 MSAs; per-MSA bucketing used by Layer 3 cross-workspace aggregates. |
 | Industry taxonomy | NAICS edition + internal categories; ship in V1 normalization layer. | NAICS edition pinned (likely 2022 latest); mapping table committed; bucketing used by Layer 3 aggregates. |
 | Currency/region scope (V1) | US/USD default; design carries currency code on every money field. | V1 lands; lint asserts ISO 4217 on every money field per [V3+ validation criteria](../phases/V3-plus.md). |
+| Team / project / dealbox model | Projects on a team; per-user dealbox + anti-dealbox; user-scoped market queries. | [teams-projects-dealbox.md](../architecture/teams-projects-dealbox.md) merged; **Prisma tables applied**; web/API enforce membership on all write paths. |
 | Workspace roles and permissions | Initial set: `owner`, `admin`, `member`, `viewer`. | V2 ships with role matrix documented and `apps/web/tests/role-matrix.test.ts` passing for every role × resource combination. |
 | Onboarding UX | Wizard vs in-context nudges. | V1 web app PR lands with one approach implemented and the other documented as the rejected alternative. |
 | Inbound email infra | TBD — Postmark / SES / Mailgun. V1+. | V1 transactional email works (digest + auth); vendor recorded as ADR. |
@@ -53,6 +55,10 @@ Resolved decisions live as ADRs (`0001` … `0015`). Items here are still in mot
 | V1.5 VM topology | Single-VM, cluster, Grafana Cloud, or Chronosphere. | V1.5 review with ~30 days of V1 signal volume; recorded as ADR. |
 | V1.5 PostHog tenancy model | Per-workspace PostHog "team" vs single instance with per-workspace properties. | V1 cross-workspace query needs documented; decision recorded. |
 | V2 admin UI build vs buy | Native React panels vs Grafana embeds. | V1.5 user research surfaces operator preferences; decision recorded as part of V2 scope. |
+| Broker-direct per-source ToS | Which directories and broker sites may be crawled in production ([broker-directory/agents.md](../../packages/broker-directory/agents.md) ToS table). BizBuySell listing data is high legal risk; IBBA directory lower risk; state DRE varies by state. | Legal review completes a signed "sources we will / won't crawl" table; each enabled `BrokerDirectoryAdapter` has a row with rationale; BBS bulk directory crawl blocked until explicit approval. |
+| Broker-site LLM cost ceiling | `broker-site-extract` on ~3k–5k firms × pages × tokens ([broker-site/agents.md](../../packages/broker-site/agents.md)). | `tokenBudgetPerBroker` and global daily cap documented in [cost-budgets.md](../operations/cost-budgets.md); soft cap enforced in harness; pilot spend within budget for 30 days. |
+| Pocket-listing freshness | Broker-site-only deals lack cross-source corroboration; need different `freshnessWarning` / dedup confidence than aggregator-sourced deals ([ADR 0016](0016-broker-direct-ingestion-lane.md)). | Policy documented in `packages/dedup/agents.md`; `packages/dedup/tests/pocket-listing-freshness.test.ts` passes; product surfaces "single-source" badge in explorer (V1.5). |
+| State license DB sourcing | Which state DRE/commission databases are worth scraping vs. licensed data feeds ([broker-directory/agents.md](../../packages/broker-directory/agents.md) `state-dre/*`). | Per-state spike for CA, FL, AZ documented with URL, query interface, ToS, and row in broker-directory table; ADR or open-row closure before `state-dre/ca` ships in V1.5. |
 
 ## Validation criteria
 

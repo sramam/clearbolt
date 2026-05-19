@@ -16,6 +16,7 @@ flowchart LR
 
     subgraph fly [Fly.io]
         WebApi[Fly: write/mutation API]
+        ScraperSvc[Fly: apps/scraper-service - HTTP scrape API]
         Scraper[Fly: scraper workers - got + Playwright]
         Transcribe[Fly: transcribe - ffmpeg + faster-whisper]
         AgentRunner[Fly: agent runners - wiki maintainer, ranker]
@@ -64,11 +65,13 @@ CF is **never** running:
 
 ### Fly.io side
 
-- **Scraper workers** — Node + got + AIA + Playwright + AIMD throttle + WAF heuristics + `needsBrowser` persistence. Two-lane architecture (HTTP fast path, browser fallback). Lifts the prior project's hard-won wisdom directly.
+- **`apps/scraper-service`** — dedicated Fly app exposing `POST /v1/bizbuysell/scrape` and `/catalog-scrape` as NDJSON streams so CF Pages / local Next.js do not run Playwright in-process. See [`apps/scraper-service/agents.md`](../../apps/scraper-service/agents.md). Local dev: `pnpm scraper-service:dev` on port 8791 (default).
+- **Scraper workers** — Node + got + AIA + Playwright + AIMD throttle + WAF heuristics + `needsBrowser` persistence. Two-lane architecture (HTTP fast path, browser fallback). Lifts the prior project's hard-won wisdom directly. Queue-driven batch jobs use the same `packages/scraper` pipelines as the HTTP service.
 - **Transcribe worker** — ffmpeg downloads/extracts audio, faster-whisper transcribes. Tiered fallback to Gemini / OpenAI hosted APIs for hard audio.
 - **Agent runners** — wiki maintainer (ingest/query/lint), ranker, deal-quality scorer, outreach drafter. Long-running, tool-using, multi-step. Built on the `packages/agents` harness.
 - **Queue worker** — pg-boss consumer. Fans out jobs to scraper / transcribe / agent runners.
 - **Write/mutation API** — the bulk of authenticated write endpoints. Anything that needs Node ecosystem (Prisma client with Postgres protocol, BullMQ-style libs, native deps).
+- **Quickwit (deferred)** — when the BM25 `SearchIndex` tier moves off Postgres FTS, **Quickwit runs here on Fly.io** (Stateful / persistent disk or clustered Quickwit on Fly VMs — details TBD at adoption). Same boundary rules as other Fly services: no CF-only APIs, reads Neon/R2 as needed, never calls CF Workers.
 
 ### Shared truth
 
@@ -100,7 +103,7 @@ Workspaces are the tenant boundary. ADR: [0012-multi-tenancy-workspace-as-tenant
 
 ## Environments
 
-- **dev**: local. Disk-backed storage. No Neon, no R2, no CF, no Fly. Single workspace. The V0 walking skeleton runs here.
+- **dev**: local. Default: disk-backed storage (V0 CLI). **Hybrid local dev** is supported: set `CLEARBOLT_STORAGE=cloud` + Neon/R2 env vars (`.env.cloud.local`) and run the web app + `scraper-service` locally without deploying CF/Fly. See [../operations/cloud-bootstrap.md](../operations/cloud-bootstrap.md).
 - **preview**: per-PR. Separate Neon branch (Neon's branching feature), separate R2 bucket prefix (`preview-<pr-number>/`), separate CF Pages preview deployment, optional Fly app per PR (or shared preview Fly app).
 - **staging**: shared. Pre-production validation. Real (small) Neon project, separate R2 bucket, separate CF deployment, separate Fly app.
 - **prod**: production. Full Neon project, R2 bucket, CF deployment, Fly cluster.
@@ -149,6 +152,9 @@ Tracked in [../decisions/open.md](../decisions/open.md).
 
 ### Multi-tenancy
 - **Given** any background worker run, **when** the job completes, **then** it has touched only the workspace's data named in the job payload. Coverage: integration. Test: `services/<each>/tests/workspace-scope-respected.test.ts` (TBD V1).
+
+### Search / lexical tier (Quickwit, deferred)
+- **Given** Quickwit is adopted for the BM25 lexical tier, **when** this deployment doc is updated for that release, **then** Quickwit is described as a Fly.io workload in the Fly.io section (not on Cloudflare Workers). Coverage: manual review on merge. Test: diagram + bullets stay in sync with [`packages/search/agents.md`](../../packages/search/agents.md) (TBD V2).
 
 ### Resilience
 - **Given** Fly's primary region goes down, **when** a request arrives, **then** CF Pages and CF Workers continue serving cached reads from Neon's HTTP driver; only writes (queue-bound) are degraded. Coverage: integration. Test: `services/api/tests/fly-down-graceful.test.ts` (TBD V1.5).

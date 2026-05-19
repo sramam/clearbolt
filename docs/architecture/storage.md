@@ -36,7 +36,7 @@ R2-specific notes:
 
 - No egress fees makes it attractive for serving raw artifacts back to internal tools and replay jobs.
 - Use lifecycle rules for derived/temporary artifacts (e.g. expired LLM caches) but never auto-delete primary source payloads without an explicit retention policy.
-- Workspace-scoped prefix on every key for workspace-private data: `workspaces/<workspaceId>/<rest>`. Shared cache evidence (e.g. canonical deal raw payloads) lives under `shared/<adapter>/<sha256>.<ext>`.
+- Workspace-scoped prefix on every key for workspace-private data: `workspaces/<workspaceId>/<rest>`. Per-user blobs (dataroom drafts, private uploads) use `workspaces/<workspaceId>/users/<userId>/…` where `<userId>` is better-auth **`User.id`**, never email ([data-model.md](data-model.md), [teams-projects-dealbox.md](teams-projects-dealbox.md)). Shared cache evidence (e.g. canonical deal raw payloads) lives under `shared/<adapter>/<sha256>.<ext>`.
 
 ## Relational database (Neon + Prisma v7)
 
@@ -72,12 +72,15 @@ See [wiki.md](wiki.md) and [`packages/wiki/agents.md`](../../packages/wiki/agent
 
 ## Lexical search
 
-`SearchIndex` (BM25-style):
+`SearchIndex` (BM25-style) — split across two packages in the current codebase:
 
-- V0: in-memory MiniSearch built on demand from `MetadataStore` rows. Sufficient for a single-machine walking skeleton.
-- V1+: Postgres FTS on Neon. Indexes source payload text, titles, descriptions, locations, brokers. Generates lexical candidate sets for deduplication. Powers shared-cache listing retrieval before workspace-specific filters and ranking are applied.
+- **Query preparation** (`packages/search`): `prepareSearchQuery` (typos, tokens), optional LLM expansion (`CLEARBOLT_SEARCH_EXPAND_LLM`).
+- **Execution** (`packages/storage-neon`): `deal_search_index` table with Postgres `tsvector` + `pg_trgm` (`searchDealSearchIndex`, `searchDealSearchIndexOr`). Upserted after ingest via `upsertDealSearchIndex`.
+- **Without `DATABASE_URL`:** web and CLI fall back to in-memory token matching on loaded deals (`apps/web/lib/deals.ts`).
 
-Quickwit is a candidate for a future high-volume tier (operational logs and search history at scale) but Postgres FTS is the V1 default — one fewer system to operate.
+Dedup's `lexical` contributor remains pairwise on `SourceRecord` text; the deal search index powers the **explorer** full-text filter, not dedup candidate generation.
+
+Quickwit is a candidate for a future high-volume BM25 tier (operational logs, search history, or listing text at scale). When adopted, **Quickwit runs on Fly.io** (not CF Workers). Postgres FTS on Neon remains the V1 default — one fewer system to operate until scale demands the split.
 
 ## Vector embeddings
 
@@ -127,13 +130,17 @@ Operational:
 
 `TODO:` Define parser/prompt versioning policy, replay job triggers, and idempotency keys.
 
+## V0 scrape-run layout (disk)
+
+Operator-facing scrape artifacts under `DATA_DIR/scrapes/` are grouped by **lane** (`listings` | `brokers`), **domain**, and **scrape-id** (stable catalog/directory slug). Each scrape has monotonic integer **run-id**s, `scrape.json` **cumulative** counts, and per-listing `index.json` + run **manifests** that point at content-addressed blobs in `raw/` / `processed/` (unchanged). See [ADR 0017](../decisions/0017-scrape-run-filesystem-layout.md) and `packages/scraper/src/scrape-paths.ts`. One-time migration: `mv data data1 && mkdir data`, then `pnpm migrate:scrape-layout`.
+
 ## Validation criteria
 
 ### Functional
 - **Given** the disk `EvidenceStore` backend, **when** the conformance suite from `packages/storage/src/conformance/evidence-store.suite.ts` runs, **then** every assertion passes. Coverage: conformance. Test: `packages/storage/tests/disk-evidence-store.test.ts::conformance` (V0).
 - **Given** the disk `MetadataStore` backend, **when** the conformance suite runs, **then** every assertion passes. Coverage: conformance. Test: `packages/storage/tests/disk-metadata-store.test.ts::conformance` (V0).
 - **Given** the V1 R2 `EvidenceStore` backend, **when** the same conformance suite runs against R2, **then** every assertion passes (substitutability proof). Coverage: conformance. Test: `packages/storage-r2/tests/r2-evidence-store.test.ts::conformance` (TBD V1).
-- **Given** the V1 Neon `MetadataStore` backend, **when** the same conformance suite runs against Neon, **then** every assertion passes. Coverage: conformance. Test: `packages/storage-neon/tests/neon-metadata-store.test.ts::conformance` (TBD V1).
+- **Given** the V1 Neon `MetadataStore` backend and `DATABASE_URL`, **when** the conformance suite runs against Neon, **then** every assertion passes. Coverage: conformance. Test: `packages/storage-neon/tests/conformance.test.ts`.
 - **Given** the disk `WikiStore` backend (wiki-fs), **when** the conformance suite runs, **then** every assertion passes. Coverage: conformance. Test: `packages/wiki-fs/tests/wiki-fs.test.ts::conformance` (TBD V1 dev).
 - **Given** the R2 `WikiStore` backend (wiki-r2), **when** the same conformance suite runs against R2, **then** every assertion passes. Coverage: conformance. Test: `packages/wiki-r2/tests/wiki-r2.test.ts::conformance` (TBD V1 prod).
 
@@ -147,6 +154,7 @@ Operational:
 
 ### Workspace scoping
 - **Given** any `EvidenceStore` write for workspace-private content, **when** the key is generated, **then** it begins with `workspaces/<workspaceId>/`. Coverage: unit. Test: `packages/storage/tests/key-prefix-workspace-scoped.test.ts` (V0).
+- **Given** any user-private R2 object under a workspace, **when** the key is generated, **then** it includes `users/<userId>/` with internal `User.id`, not email. Coverage: integration. Test: `packages/storage-r2/tests/workspace-key-prefix.test.ts` (TBD V1).
 - **Given** any `MetadataStore` query against a workspace-scoped table, **when** invoked without a `workspaceId`, **then** the call is rejected. Coverage: integration. Test: `packages/storage/tests/workspace-scope-required.test.ts` (V0 advisory; V1 enforced).
 
 ### Idempotency

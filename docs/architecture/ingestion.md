@@ -36,6 +36,10 @@ Capture adapters (universal clipper, V1+):
 
 Agents adding new sources prefer adapters over branching core pipeline logic.
 
+## Catalog vs detail and tiered refresh
+
+Discovery (catalog walk → listing ref set) and detail fetch (per-listing HTML → parse → dedup) are **separate phases** with different cadences. Default policy: **daily discovery**, **weekly detail** for the shared corpus, **daily detail** for dealbox listings. Fingerprints at catalog-card and body level avoid redundant HTTP. Full spec: [ingestion-freshness.md](ingestion-freshness.md). Layout: [ADR 0017](../decisions/0017-scrape-run-filesystem-layout.md).
+
 ## Source freshness, adapter SLAs, and parser drift
 
 Adapters silently break. Plan for it.
