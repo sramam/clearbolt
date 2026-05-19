@@ -1,0 +1,40 @@
+{
+  "name": "@clearbolt/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "auth:schema": "pnpm exec better-auth generate --config ./auth.ts --output ../db/prisma/schema.prisma -y"
+  },
+  "dependencies": {
+    "@clearbolt/core": "workspace:*",
+    "@clearbolt/db": "workspace:*",
+    "better-auth": "1.4.22",
+    "dotenv": "^16.4.7"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@better-auth/cli": "1.4.21",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
