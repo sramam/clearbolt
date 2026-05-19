@@ -1,0 +1,44 @@
+{
+  "name": "@clearbolt/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "pnpm --filter @clearbolt/search build && pnpm --filter @clearbolt/scraper build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@clearbolt/auth": "workspace:*",
+    "@clearbolt/core": "workspace:*",
+    "@clearbolt/db": "workspace:*",
+    "@clearbolt/scraper": "workspace:*",
+    "@clearbolt/search": "workspace:*",
+    "@clearbolt/storage": "workspace:*",
+    "@clearbolt/storage-neon": "workspace:*",
+    "@clearbolt/storage-r2": "workspace:*",
+    "@radix-ui/react-collapsible": "^1.1.2",
+    "@radix-ui/react-separator": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-tooltip": "1.1.6",
+    "better-auth": "1.4.22",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "lucide-react": "^0.468.0",
+    "next": "15.1.6",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.17",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.7.3"
+  }
+}
