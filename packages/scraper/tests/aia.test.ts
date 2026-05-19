@@ -35,7 +35,7 @@ describe("AIA TLS", () => {
   });
 
   it("aia_completes_chain_for_incomplete_host", async () => {
-    const fetcher = new HttpFetcher();
+    const fetcher = new HttpFetcher({ proxyTier: "direct" });
     const res = await fetcher.fetch({ url: INCOMPLETE_CHAIN });
     expect(res.status).toBe(200);
     expect(res.body.length).toBeGreaterThan(100);

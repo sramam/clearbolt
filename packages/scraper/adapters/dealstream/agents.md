@@ -2,9 +2,23 @@
 
 V1+ adapter. Mixed-quality broad marketplace; can surface oddball industrial/service deals.
 
-`TODO:` Fill in adapter API stubs, parser shape, anti-bot notes, and canary fixtures once V1+ adapter work begins.
+## Adapter API
+
+- `parseSearchUrl(url) -> DealStreamSavedSearchParams`
+- `discoverListingRefs(params) -> AsyncIterable<ListingRef>`
+- `fetchListingDetail(ref) -> RawSourceRecord`
+- `extractBrokerLinks(record) -> BrokerEndpoint[]`
+
+Broker profile parser: `packages/scraper/src/adapters/dealstream-broker-parse.ts`.
+
+`TODO:` Fill search URL shape, anti-bot notes, and canary fixtures once V1+ adapter work begins.
 
 ## Validation criteria
+
+### Broker enrichment (marketplace)
+- **Given** a labeled DealStream broker profile fixture, **when** `parseDealStreamBrokerProfilePage` runs, **then** `activeListings` contains ≥1 card with `url` and `externalId`. Coverage: unit. Test: `packages/scraper/tests/dealstream-broker-parse.test.ts` (TBD V1.5).
+- **Given** a listing detail fixture, **when** `extractBrokerLinks` runs, **then** it returns ≥0 `BrokerEndpoint`s with `profileUrl` when present. Coverage: unit. Test: `packages/scraper/adapters/dealstream/tests/extract-broker-links.test.ts` (TBD V1.5).
+- **Given** a broker profile with N active listings that ingest successfully, **when** broker materialization runs, **then** one `Broker` row and N `BrokerListing` rows exist. Coverage: integration. Test: `packages/storage-neon/tests/dealstream-broker-materialization.test.ts` (TBD V1.5).
 
 ### Adapter contract
 - **Given** the DealStream adapter, **when** the `Adapter` conformance suite from `packages/scraper/src/conformance/adapter.suite.ts` runs, **then** all assertions pass. Coverage: integration. Test: `packages/scraper/adapters/dealstream/tests/conformance.test.ts` (TBD V1.5).

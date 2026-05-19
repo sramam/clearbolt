@@ -55,4 +55,17 @@ describe("engine escalation", () => {
       kind: "ok",
     });
   });
+
+  it("hard_denial_does_not_retry_http", async () => {
+    const { planHttpLaneAfterWafResponse } = await import(
+      "../src/waf-retry-policy.js"
+    );
+    const body = `Access Denied edgesuite.net errors.edgesuite.net/abc`;
+    expect(
+      planHttpLaneAfterWafResponse(403, body, {
+        httpAttemptIndex: 0,
+        maxHttpAttempts: 3,
+      }),
+    ).toEqual({ kind: "fail_hard" });
+  });
 });

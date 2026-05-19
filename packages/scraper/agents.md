@@ -100,15 +100,31 @@ The scraper exposes these contracts (full inventory in [`docs/architecture/contr
 
 One per site, in `packages/scraper/adapters/<source>/`:
 
-- [bizbuysell](adapters/bizbuysell/agents.md) — primary, V0.
+- [bizbuysell](adapters/bizbuysell/agents.md) — primary, V0 (search + state catalog via `clearbolt catalog`; catalog pagination and listing-id discovery dedupe documented there).
 - [bizquest](adapters/bizquest/agents.md) — V1.
 - [businessbroker](adapters/businessbroker/agents.md) — V1.
-- [businessesforsale](adapters/businessesforsale/agents.md) — V1.
-- [loopnet](adapters/loopnet/agents.md) — V1+.
+- [businessesforsale](adapters/businessesforsale/agents.md) — pre-V1 catalog discovery (`/us/search/…`, Playwright); V1 listing parse + ingest.
+- [loopnet](adapters/loopnet/agents.md) — pre-V1 catalog discovery (`/biz/…`); V1+ listing parse + business/property fields.
 - [bizben](adapters/bizben/agents.md) — V1+ (CA-heavy).
 - [dealstream](adapters/dealstream/agents.md) — V1+.
 
 Adapters do not branch on lane (HTTP vs browser). Both lanes feed the same `RawSourceRecord` shape; lane selection is `Fetcher`-level.
+
+## HTTP scraper service
+
+[`apps/scraper-service`](../../apps/scraper-service/agents.md) exposes `POST /v1/bizbuysell/scrape` and `POST /v1/bizbuysell/catalog-scrape` as NDJSON streams (progress + result). The web app and operators use this instead of spawning Playwright inside Next.js when `CLEARBOLT_SCRAPER_SERVICE_URL` is set.
+
+## Discovery, proxies, resume state
+
+- **Serper** — optional Google SERP discovery (`serper-client.ts`, `bizbuysell-serper-discovery.ts`) when `SERP_DEV_API_KEY` / `SERPER_API_KEY` is set; web/CLI `discovery: "serper"`.
+- **Rotating proxy** — `rotating-proxy-fetcher.ts`, `proxy-config.ts`, `proxy-endpoints-file.ts`; tiers `direct-then-residential` etc. (see `.env.example`).
+- **Scrape-run layout (ADR [0017](../../docs/decisions/0017-scrape-run-filesystem-layout.md))** — `scrapes/{listings|brokers}/<domain>/<scrape-id>/` with `scrape.json` (cumulative + `nextRunId`), `runs/<run-id>/run.json`, per-listing `listings/<id>/index.json` + `runs/<run-id>/manifest.json` (pointers to content-addressed blobs). Helpers: `scrape-paths.ts`. Migration: `pnpm migrate:scrape-layout` after `mv data data1 && mkdir data`.
+- **Tiered freshness ([ingestion-freshness.md](../../docs/architecture/ingestion-freshness.md))** — daily catalog discovery; weekly detail by default; daily detail for dealbox / new ids; `cardFingerprint` + `lastBodyFingerprint` to skip redundant fetches. V0 env: `CLEARBOLT_LISTING_FETCH_COOLDOWN_*`; scheduler tests TBD (`listing-fetch-schedule.test.ts`).
+- **Legacy (pre-0017, dual-read during cutover)** — `catalog-refs/…`, `listing-ingest-state/<adapter>/<id>/state.json`, `ingest-failures/<adapter>.json`.
+- **Evidence / processed** — `raw/<adapter>/<sha256>.<ext>`, `processed/<adapter>/…` (unchanged; manifests reference keys).
+- **Listing resume** — prefer `listings/<id>/index.json` under the active scrape; falls back to legacy `listing-ingest-state` until migration completes. Pairs with dedup [`listing-fetch-cooldown`](../dedup/agents.md).
+- **Robots** — `robots-policy.ts` + `CLEARBOLT_SCRAPER_ROBOTS` / min gap env vars.
+- **Processed artifacts** — markdown, structured JSON, optional embedding JSON under evidence store paths (see `.env.example` R2 layout).
 
 ## Where it runs
 
@@ -126,7 +142,9 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 - `WafDetector` with Akamai rule pack (since BizBuySell uses Akamai, this exercises the wisdom up front).
 - `crawl-policy.ts` + `fetch-with-waf-policy.ts` — bounded HTTP retries after `classifyWaf`; when the HTTP lane is exhausted, persist `needsBrowser` then optionally continue on the Playwright-backed `browserFetcher` (wired in the CLI scrape path with `openBrowserSession`).
 - `BrowserFetcher` — Chromium via Playwright (`openBrowserSession`): one process per CLI scrape, shared across search + listing fetches when HTTP is skipped or exhausted; disabled with `CLEARBOLT_SKIP_BROWSER=1` or `--fixtures`. After `pnpm install`, run **`pnpm ensure:playwright`** from the repo root once per machine/image to download Chromium (see root README).
-- One adapter end-to-end: `adapters/bizbuysell/`.
+- **BizBuySell fixture replay:** checked-in HTML under `tests/fixtures/` for CI. Optional **`bizbuysell-live-cache.json`** holds a live-captured search page plus listing bodies keyed by real URLs; `pnpm fixtures:refresh` writes it (`BIZBUYSELL_FIXTURE_MASK_HTML=1` applies `maskBizBuySellHtml` for committed snapshots). `parseBizBuySellLiveCache` treats missing `fetchedAt` as a stable placeholder. **`validateBizBuySellLiveCacheInvariants`** checks structure and discoverability but not capture time; **`serializeBizBuySellLiveCacheForCompare`** omits `fetchedAt` and diffs masked HTML for golden tests. **`pnpm fixtures:recover`** truncates dev Neon metadata (guarded) then refreshes the cache — suggested when scraper fixture tests fail (Vitest prints a hint).
+- One adapter end-to-end: `adapters/bizbuysell/` (including catalog walk — see [bizbuysell/agents.md](adapters/bizbuysell/agents.md#state-catalog-discovery-cli-clearbolt-catalog)).
+- **Fly service:** [`apps/scraper-service`](../../apps/scraper-service/agents.md) for remote scrape/catalog from the web app.
 
 ## Validation criteria
 
@@ -143,6 +161,7 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 - **Given** a `WafDetector` classification and attempt count, **when** `planHttpLaneAfterWaf` runs, **then** challenge/block persist `needsBrowser` without endless HTTP retry, rate limits retry up to `maxHttpAttempts` then persist, and `ok` continues. Coverage: integration. Test: `packages/scraper/tests/engine-escalation.test.ts`.
 - **Given** any `WafDetector`, **when** fed the fixture corpus in `packages/scraper/tests/fixtures/waf/*`, **then** classification matches the labeled expectation (`ok | challenge | block | rate_limited`). Coverage: golden-set. Test: `packages/scraper/tests/waf-detector.test.ts` (TBD V0).
 - **Given** any `Adapter`, **when** the conformance suite runs, **then** `parseSearchUrl` round-trips, `discoverListingRefs` yields at least one ref on a fixture page, and `fetchListingDetail` produces a `RawSourceRecord` with provenance. Coverage: golden-set. Test: `packages/scraper/src/conformance/adapter.suite.ts` (TBD V0).
+- **Given** two HTML fragments whose visible text is identical after tag stripping, **when** `htmlListingBodyFingerprint` runs on each, **then** the digests are equal. Coverage: unit. Test: `packages/scraper/tests/html-body-fingerprint.test.ts`.
 
 ### Functional
 - **Given** an HTTPS host serving an incomplete certificate chain, **when** `HttpFetcher` connects, **then** AIA fetches the missing intermediate, builds an `https.Agent` with the full chain, caches it for the host, and the request succeeds. Coverage: integration. Test: `packages/scraper/tests/aia.test.ts::aia_completes_chain_for_incomplete_host`.
@@ -151,6 +170,14 @@ A future CF Worker port is possible for the **HTTP-only** lane on cooperative si
 - **Given** a 429 with `Retry-After`, **when** received, **then** `DomainThrottleManager` waits at least the indicated interval before the next request to that domain. Coverage: integration. Test: `packages/scraper/tests/aimd-respects-retry-after.test.ts` (TBD V0).
 - **Given** an HTTP response classified as SPA-skeleton (low text + framework markers), **when** received, **then** the request is escalated to the browser lane. Coverage: integration. Test: `packages/scraper/tests/spa-detection.test.ts` (TBD V0).
 - **Given** any successful fetch, **when** complete, **then** the raw body is written to `EvidenceStore` and `RawSourceRecord.evidenceRef` references it. Coverage: integration. Test: `packages/scraper/tests/evidence-stored.test.ts` (TBD V0).
+
+### Fixtures / drift
+- **Given** a directory containing valid `bizbuysell-live-cache.json` with at least one listing entry, **when** `buildBizBuySellFixtureFetcher` runs, **then** the returned `MockFetcher` serves HTTP 200 for each cached `requestUrl` and `fixtureSearchUrl` matches the cache `searchUrl`. Coverage: unit. Test: `packages/scraper/tests/bizbuysell-fixture-fetcher.test.ts::buildBizBuySellFixtureFetcher uses live cache when listings are present`.
+- **Given** malformed JSON or `version !== 1`, **when** `parseBizBuySellLiveCache` runs, **then** it returns `null`. Coverage: unit. Test: `packages/scraper/tests/bizbuysell-fixture-fetcher.test.ts::parseBizBuySellLiveCache rejects invalid payloads`.
+- **Given** JSON with `version`/`searchUrl`/`searchHtml`/`listings` but no `fetchedAt`, **when** `parseBizBuySellLiveCache` runs, **then** it returns a cache with a fixed placeholder `fetchedAt`. Coverage: unit. Test: `packages/scraper/tests/bizbuysell-fixture-fetcher.test.ts::parseBizBuySellLiveCache defaults missing fetchedAt`.
+- **Given** HTML that differs only by a `<script>` payload and two caches with different `fetchedAt`, **when** `serializeBizBuySellLiveCacheForCompare` runs on each, **then** the serialized strings are identical. Coverage: unit. Test: `packages/scraper/tests/bizbuysell-fixture-fetcher.test.ts::serializeBizBuySellLiveCacheForCompare ignores fetchedAt and scripts`.
+- **Given** HTML containing `<script>`, **when** `maskBizBuySellHtml` runs, **then** script tags are removed from the result. Coverage: unit. Test: `packages/scraper/tests/bizbuysell-fixture-fetcher.test.ts::maskBizBuySellHtml removes script tags`.
+- **Given** a minimal valid live cache, **when** `validateBizBuySellLiveCacheInvariants` runs, **then** it returns ok. Coverage: unit. Test: `packages/scraper/tests/bizbuysell-fixture-fetcher.test.ts::validateBizBuySellLiveCacheInvariants accepts minimal cache`.
 
 ### Drift / freshness
 - **Given** any adapter with canary fixtures, **when** the daily canary fails twice consecutively, **then** the adapter is marked degraded and an alert fires. Coverage: smoke. Test: `services/adapter-canary/tests/two-strikes-degrade.test.ts` (TBD V1).
