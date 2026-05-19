@@ -1,0 +1,26 @@
+{
+  "name": "@clearbolt/storage-r2",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.721.0",
+    "@clearbolt/core": "workspace:*",
+    "@clearbolt/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "typescript": "^5.7.3"
+  }
+}
