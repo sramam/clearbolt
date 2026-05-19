@@ -1,89 +1,90 @@
 # `packages/storage-neon`
 
-> Runtime: **both**. Neon Postgres + Prisma v7 backend for `MetadataStore`. V1+ only.
+> Runtime: **node** today (Fly / local Next server actions). CF Workers HTTP driver binding is planned for V1 edge reads.
 
-Implements every sub-store of [`packages/storage`](../storage/agents.md)'s `MetadataStore` contract against Neon Postgres via Prisma v7.
+Neon Postgres + Prisma v7 backend for `MetadataStore` and shared deal search. Implements the V0 JSONB metadata contract from [`packages/storage`](../storage/agents.md).
 
-## Driver split
+## Driver
 
-- **CF Workers**: `@neondatabase/serverless` HTTP driver. Edge-compatible, no socket overhead.
-- **Fly Node**: standard `pg` / `pg-pool` via Prisma's default driver.
+- **Fly Node / local dev:** `NeonMetadataStore` with `pg` + `@prisma/adapter-pg` via `getPrisma()` from [`packages/db`](../db/agents.md).
+- **CF Workers:** `@neondatabase/serverless` HTTP driver (planned; not wired in apps yet).
 
-The `bindStorage` selector in `packages/storage` picks the right driver based on runtime env.
+`neonMetadataConfigFromEnv()` reads `DATABASE_URL` (and related) from the same env files as the CLI and web app.
 
-## Schema
+## Schema in use today
 
-`packages/storage-neon/prisma/schema.prisma` carries the full schema. Sketch in [`docs/architecture/data-model.md`](../../docs/architecture/data-model.md).
+All DDL lives in [`packages/db`](../db/agents.md). Tables this package reads/writes now:
 
-Highlights:
+| Table | Role |
+|-------|------|
+| `source_records`, `canonical_deals`, `dedup_mappings`, `domain_profiles` | V0 metadata JSONB (mirrors disk layout in payloads) |
+| `deal_search_index` | Shared lexical index: `title`, `location`, `document`, `adapters`, `search_vector` (trigger-maintained) |
+| `workspace_projects`, `user_project_dispositions`, `user_market_queries` | Team pipeline + per-user dealbox / saved searches (`owner_user_id` = `User.id`) |
+| `user`, `session`, `organization`, `member`, `invitation`, … | better-auth (via [`packages/auth`](../auth/agents.md)) |
 
-- `Workspace`, `Membership`, `User` (last via better-auth's tables; we reference, not own).
-- `SourceRecord`, `CanonicalDeal`, `Broker`, `BrokerFirm`, `BrokerListing`.
-- `DealEvent` (append-only).
-- `WorkspaceSavedSearch`, `WorkspaceSearchRun`, `WorkspaceFind`, `WorkspaceFeedback`, `WorkspaceRankingProfile`.
-- `WorkspaceCapture`, `WikiPage`.
-- `BuyerFinancialProfile`, `AcquisitionCriteria`, `FinancingScenario`, `DealFitScore`.
-- `MarketDefinition`, `DealQualityScore`, `DiligenceGap`.
-- `Contact`, `ContactMethod`, `OutreachAttempt`, `OutreachThread`, `NextAction`.
-- `AuditEvent`.
-- `MergeCandidate` (for V1 vector pass to re-evaluate sub-threshold V0 candidates).
-- `DomainProfile` (`needsBrowser` + AIMD persisted state).
-- `CanonicalDealEmbedding` (pgvector column; HNSW index).
+Broader entities in [data-model.md](../../docs/architecture/data-model.md) (brokers, wiki, captures, merge candidates, pgvector embeddings) are **not** in the current Prisma schema yet — add via `packages/db` migrations when those surfaces ship.
 
-## pgvector
+## Deal search (Postgres FTS)
 
-ADR: [`docs/decisions/0011-vector-pgvector-on-neon-v1.md`](../../docs/decisions/0011-vector-pgvector-on-neon-v1.md).
+[`deal-search-index.ts`](src/deal-search-index.ts):
 
-- `vector` extension enabled on the database.
-- Embedding columns live on sibling tables (one per embedded entity type) so the main entity table stays narrow.
-- HNSW indexes on each embedding column.
-- Cosine distance as the default operator.
+- **`buildDealSearchDocument`** / **`upsertDealSearchIndex`** — rebuild row from canonical + sources after ingest.
+- **`searchDealSearchIndex`** / **`searchDealSearchIndexOr`** — ranked hits for the web explorer (`apps/web/lib/deals.ts`).
+- **`reindexAllDealSearch`** — backfill helper.
 
-## pg-boss
+Migration: `20260519000000_deal_search_fts` (`pg_trgm` + GIN on `search_vector` and title/location). Query prep: [`packages/search`](../search/agents.md) `prepareSearchQuery`.
 
-The queue contract ([`packages/queue`](../queue/agents.md)) backs by pg-boss tables in this same Neon database. Single source of truth, single backup story.
+## Workspace pipeline
+
+[`workspace-pipeline.ts`](src/workspace-pipeline.ts) — CRUD for projects and user dispositions (used by web actions; tenant columns enforced in SQL).
 
 ## Multi-tenancy
 
-- Every workspace-scoped table has a `workspaceId String` column with FK to `Workspace.id`.
-- Composite indexes that include `workspaceId` first to prevent accidental table scans across tenants.
-- Row-level enforcement is at the application layer (`MetadataStore` sub-stores require an explicit workspace context for any workspace-scoped op).
-- Cross-tenant tests in CI ensure no sub-store leaks across workspaces.
+- Workspace-scoped rows use `workspace_id` (= better-auth org id).
+- User-scoped rows use `owner_user_id` / `user_id` = internal **`User.id`**, never email ([`teams-projects-dealbox`](../../docs/architecture/teams-projects-dealbox.md)).
+- Application-layer filtering in store methods; row-level security is not enabled on Neon yet.
 
 ## Migrations
 
-- Forward-only.
-- `prisma migrate deploy` on Fly entrypoint at boot for write API.
-- Neon branching for preview environments so PR migrations don't pollute prod.
+Schema and SQL live in [`packages/db`](../db/agents.md) only. Never add `prisma/` here.
+
+- Apply: root `pnpm db:migrate`
+- Author: root `pnpm db:migrate:dev -- --name …`
 
 ## Conformance
 
-Implements the full `MetadataStore` conformance suite from `packages/storage`. CI runs the suite against a real Neon test branch on every PR that touches this package.
+When `DATABASE_URL` is set, `packages/storage-neon/tests/conformance.test.ts` runs `assertMetadataStoreConformance` from `packages/storage`. Skips in CI without credentials.
+
+## pgvector / pg-boss (planned V1+)
+
+- Embeddings: [ADR 0011](../../docs/decisions/0011-vector-pgvector-on-neon-v1.md) — sibling tables + HNSW (not in schema yet).
+- Queue: pg-boss tables in the same Neon DB per [`packages/queue`](../queue/agents.md) (not migrated yet).
 
 ## Validation criteria
 
 ### Conformance
-- **Given** the `NeonMetadataStore` backend, **when** the `MetadataStore` conformance suite from `packages/storage/src/conformance/metadata.suite.ts` runs against a real Neon test branch, **then** all sub-store assertions pass. Coverage: integration. Test: `packages/storage-neon/tests/conformance.test.ts` (TBD V1).
+- **Given** the `NeonMetadataStore` backend and `DATABASE_URL` configured, **when** `assertMetadataStoreConformance` from `packages/storage/src/conformance/metadata.suite.ts` runs, **then** all sub-store assertions pass. Coverage: integration. Test: `packages/storage-neon/tests/conformance.test.ts`.
 
-### Tenant isolation (hard rule)
-- **Given** any workspace-scoped sub-store call, **when** invoked, **then** the SQL query plan includes the `workspaceId` predicate (verified via `EXPLAIN`). Coverage: integration. Test: `packages/storage-neon/tests/workspace-predicate-required.test.ts` (TBD V1).
-- **Given** workspace A's row, **when** workspace B (or no workspace context) reads, **then** the read returns nothing. Coverage: integration. Test: `packages/storage-neon/tests/cross-tenant-no-leak.test.ts` (TBD V1). Part of the cross-tenant suite that must always be 100%.
-- **Given** any new sub-store added in the future, **when** registered, **then** it must declare its tables as workspace-scoped or shared explicitly; the lint refuses an "unspecified" default. Coverage: lint. Test: `scripts/lint-specs.mjs::substore_declares_scope` (TBD V1).
+### User-scoped owner keys
+- **Given** `UserMarketQuery` or `UserProjectDisposition` rows, **when** created via the store, **then** owner columns store internal `userId` only, not email. Coverage: integration. Test: `packages/storage-neon/tests/user-scoped-owner-is-user-id.test.ts`.
+
+### Deal search index
+- **Given** a canonical deal upserted in metadata, **when** `upsertDealSearchIndex` runs, **then** `deal_search_index` contains a row with non-null `search_vector` after commit. Coverage: integration. Test: TBD (add with FTS regression suite).
+
+### Tenant isolation (hard rule; planned V1)
+- **Given** any workspace-scoped sub-store call, **when** invoked, **then** the SQL query plan includes the `workspaceId` predicate (verified via `EXPLAIN`). Coverage: integration. Test: `packages/storage-neon/tests/workspace-predicate-required.test.ts` (planned V1).
+- **Given** workspace A's row, **when** workspace B (or no workspace context) reads, **then** the read returns nothing. Coverage: integration. Test: `packages/storage-neon/tests/cross-tenant-no-leak.test.ts` (planned V1).
 
 ### Driver split
-- **Given** a CF Worker context, **when** `NeonMetadataStore` is bound, **then** `@neondatabase/serverless` HTTP driver is used. Coverage: integration. Test: `packages/storage-neon/tests/driver-cf-workers.test.ts` (TBD V1).
-- **Given** a Fly Node context, **when** `NeonMetadataStore` is bound, **then** the standard `pg` driver is used. Coverage: integration. Test: `packages/storage-neon/tests/driver-fly-node.test.ts` (TBD V1).
-
-### pgvector (V1+)
-- **Given** the `vector` extension enabled, **when** an HNSW index is queried with a cosine distance operator, **then** results are returned within the operational latency budget (P95 ≤ 200ms for 100k vectors, dimensions=1536). Coverage: smoke. Test: `packages/storage-neon/tests/pgvector-latency.test.ts` (TBD V1.5). Triggers ADR 0011 falsifiability if breached.
-- **Given** any embedding column, **when** added in a migration, **then** it lives on a sibling table (the main entity table stays narrow). Coverage: lint. Test: `scripts/lint-specs.mjs::embedding_column_on_sibling_table` (TBD V1).
+- **Given** a CF Worker context, **when** `NeonMetadataStore` is bound, **then** `@neondatabase/serverless` HTTP driver is used. Coverage: integration. Test: `packages/storage-neon/tests/driver-cf-workers.test.ts` (planned V1).
+- **Given** a Fly Node context, **when** `NeonMetadataStore` is bound, **then** the standard `pg` driver is used. Coverage: integration. Test: `packages/storage-neon/tests/driver-fly-node.test.ts` (planned V1).
 
 ### Migrations
-- **Given** any migration in `packages/storage-neon/prisma/migrations/`, **when** `prisma migrate deploy` runs at boot, **then** it is idempotent (re-run on up-to-date DB is a no-op). Coverage: integration. Test: `packages/storage-neon/tests/migrate-idempotent.test.ts` (TBD V1).
-- **Given** any PR that touches `prisma/schema.prisma`, **when** CI runs, **then** the migration is applied to a Neon branch and the conformance suite passes against it. Coverage: integration. Test: `.github/workflows/storage-neon-migration.yml` (TBD V1).
-
-### pg-boss co-tenancy
-- **Given** pg-boss tables in this same Neon database, **when** queue ops run, **then** they do not block or contend pathologically with `MetadataStore` ops (queue and metadata isolated by schema or table). Coverage: smoke. Test: `packages/storage-neon/tests/pg-boss-noncontending.test.ts` (TBD V1.5).
+- **Given** the `20260518000000_init` migration, **when** `prisma migrate deploy` runs on an empty database, **then** metadata, pipeline, and better-auth tables exist with expected FKs (e.g. `user_project_dispositions.project_id` → `workspace_projects.id` ON DELETE CASCADE). Coverage: integration. Test: `packages/db/tests/migrate-idempotent.test.ts`.
+- **Given** `20260519000000_deal_search_fts`, **when** deploy runs, **then** `deal_search_index` and `pg_trgm` extension exist. Coverage: integration. Test: `packages/db/tests/migrate-idempotent.test.ts`.
+- **Given** any migration in `packages/db/prisma/migrations/`, **when** `prisma migrate deploy` runs at boot, **then** it is idempotent (re-run on up-to-date DB is a no-op). Coverage: integration. Test: `packages/db/tests/migrate-idempotent.test.ts`.
 
 ### Cross-link
 - ADR: [`docs/decisions/0011-vector-pgvector-on-neon-v1.md`](../../docs/decisions/0011-vector-pgvector-on-neon-v1.md), [`docs/decisions/0012-multi-tenancy-workspace-as-tenant.md`](../../docs/decisions/0012-multi-tenancy-workspace-as-tenant.md).
+- Teams / projects / queries: [`docs/architecture/teams-projects-dealbox.md`](../../docs/architecture/teams-projects-dealbox.md).
+- Web consumer: [`apps/web/agents.md`](../../apps/web/agents.md).

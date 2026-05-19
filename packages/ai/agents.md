@@ -48,7 +48,7 @@ Routing rules in `packages/ai/routing.ts`:
 - `extraction` -> cheap, fast (e.g. gpt-4o-mini, claude-3-haiku).
 - `wiki-ingest` -> mid-tier (e.g. gpt-4o, claude-3.5-sonnet).
 - `wiki-query` -> mid-tier with longer context.
-- `dedup-judge` -> mid-tier.
+- `dedup-judge` / `dedup-llm` -> **cheap** chat (OpenRouter interim in [`packages/dedup`](../dedup/agents.md) via direct API until AI Gateway routes this feature); upgrade path = same contract behind `ModelProvider`.
 - `ranking` -> cheap.
 - `outreach-draft` -> mid-tier with style consistency.
 - `market-definition` -> mid-tier with planner/evaluator pattern (multi-call).

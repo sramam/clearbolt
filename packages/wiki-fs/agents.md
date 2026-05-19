@@ -35,7 +35,7 @@ Implements the full `WikiStore` conformance suite from `packages/storage`.
 ## Validation criteria
 
 ### Conformance
-- **Given** the `WikiFsStore` backend, **when** the `WikiStore` conformance suite from `packages/storage/src/conformance/wiki.suite.ts` runs, **then** all assertions pass: write/read exact match, list with prefix, optional snapshot. Coverage: integration. Test: `packages/wiki-fs/tests/conformance.test.ts` (TBD V0).
+- **Given** the `WikiFsStore` backend, **when** the `WikiStore` conformance suite from `packages/storage/src/conformance/wiki.suite.ts` runs, **then** all assertions pass: write/read exact match, list with prefix, optional snapshot. Coverage: integration. Test: `packages/wiki-fs/tests/conformance.test.ts`.
 
 ### Layout
 - **Given** any workspace's wiki directory, **when** initialized, **then** the directory tree under `<root>/workspaces/<workspaceId>/wiki/` matches the schema in [`docs/architecture/wiki.md`](../../docs/architecture/wiki.md). Coverage: integration. Test: `packages/wiki-fs/tests/layout-matches-schema.test.ts` (TBD V0).

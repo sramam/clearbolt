@@ -20,6 +20,7 @@ Default: AWS SDK v3 against R2's S3-compatible endpoint. Same code on Fly and CF
 ## Key conventions
 
 - Workspace-private: `workspaces/<workspaceId>/<sub-area>/<sha256>.<ext>` where `<sub-area>` ∈ {`captures`, `documents`, `wiki-snapshots`, ...}.
+- Per-user artifacts under the same workspace (e.g. personal dataroom copies, drafts): `workspaces/<workspaceId>/users/<userId>/<sub-area>/…` where `<userId>` is better-auth **`User.id`**, never email ([`packages/storage`](../storage/agents.md), [`teams-projects-dealbox`](../../docs/architecture/teams-projects-dealbox.md)).
 - Shared cache: `shared/<adapter>/<sha256>.<ext>`.
 - Content-addressed by sha256 inside each prefix so duplicates dedupe naturally.
 
@@ -40,12 +41,12 @@ Implements the full `EvidenceStore` conformance suite from `packages/storage`. C
 ## Validation criteria
 
 ### Conformance
-- **Given** the `R2EvidenceStore` backend, **when** the `EvidenceStore` conformance suite from `packages/storage/src/conformance/evidence.suite.ts` runs against a real R2 test bucket, **then** all assertions pass. Coverage: integration. Test: `packages/storage-r2/tests/conformance.test.ts` (TBD V1).
+- **Given** the `R2EvidenceStore` backend, **when** the `EvidenceStore` conformance suite from `packages/storage/src/conformance/evidence.suite.ts` runs against a real R2 test bucket, **then** all assertions pass. Coverage: integration. Test: `packages/storage-r2/tests/conformance.test.ts`.
 
 ### Key conventions (hard rule)
 - **Given** any workspace-scoped put, **when** the key is generated, **then** it carries the `workspaces/<workspaceId>/<sub-area>/<sha256>.<ext>` prefix. Coverage: integration. Test: `packages/storage-r2/tests/workspace-key-prefix.test.ts` (TBD V1).
-- **Given** any shared-cache put, **when** the key is generated, **then** it carries the `shared/<adapter>/<sha256>.<ext>` prefix. Coverage: integration. Test: `packages/storage-r2/tests/shared-key-prefix.test.ts` (TBD V1).
-- **Given** the same payload put twice, **when** complete, **then** R2 stores it once (sha256 collision is a no-op). Coverage: integration. Test: `packages/storage-r2/tests/content-addressed-dedup.test.ts` (TBD V1).
+- **Given** any shared-cache put, **when** the key is generated, **then** it carries the `shared/<adapter>/<sha256>.<ext>` prefix. Coverage: integration. Test: `packages/storage-r2/tests/shared-key-prefix.test.ts`.
+- **Given** the same payload put twice, **when** complete, **then** R2 stores it once (sha256 collision is a no-op). Coverage: integration. Test: `packages/storage/src/conformance/evidence.suite.ts` via `packages/storage-r2/tests/conformance.test.ts`.
 
 ### Cross-runtime equivalence
 - **Given** the `R2EvidenceStore` invoked via AWS SDK v3 from CF Workers, **when** it puts an object, **then** the same object is readable via AWS SDK v3 from Fly Node, byte-identical. Coverage: integration. Test: `packages/storage-r2/tests/cross-runtime-rw.test.ts` (TBD V1).
