@@ -62,7 +62,9 @@ if (onlySource) {
   sources = sources.filter((s) => s.id === onlySource);
   if (sources.length === 0) {
     console.error(
-      `Unknown or excluded source "${onlySource}". Non-BizBuySell ids: ${CATALOG_SOURCES.filter((s) => s.id !== "bizbuysell")
+      `Unknown or excluded source "${onlySource}". Non-BizBuySell ids: ${CATALOG_SOURCES.filter(
+        (s) => s.id !== "bizbuysell",
+      )
         .map((s) => s.id)
         .join(", ")}`,
     );
@@ -106,9 +108,7 @@ if (skipBrowser) {
     "WARNING: CLEARBOLT_SKIP_BROWSER=1 — browser-required sources will likely fail.",
   );
 }
-console.log(
-  `Sources: ${sources.map((s) => s.id).join(", ")}\n`,
-);
+console.log(`Sources: ${sources.map((s) => s.id).join(", ")}\n`);
 
 const results = [];
 

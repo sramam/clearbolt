@@ -1,14 +1,14 @@
 #!/usr/bin/env node
+import { execFile } from "node:child_process";
 /**
  * Smoke-test Decodo proxy env (CLEARBOLT_PROXY_*). Loads .env.cloud.local → .env.dev → .env
  * Usage: pnpm proxy:test
  */
 import { readFileSync } from "node:fs";
-import { execFile } from "node:child_process";
-import { config } from "dotenv";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { config } from "dotenv";
 
 const execFileAsync = promisify(execFile);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,7 +23,8 @@ function buildDecodoUsername(base, sessionKey) {
     10,
   );
   let user = base.startsWith("user-") ? base : `user-${base}`;
-  if (!user.includes(`-country-${country}`)) user = `${user}-country-${country}`;
+  if (!user.includes(`-country-${country}`))
+    user = `${user}-country-${country}`;
   if (!user.includes("-session-")) {
     user = `${user}-session-${sessionKey}-sessionduration-${duration}`;
   }
@@ -52,7 +53,12 @@ function firstEndpointFromFile(filePath) {
   try {
     content = readFileSync(resolved, "utf8");
   } catch (err) {
-    if (err && typeof err === "object" && "code" in err && err.code === "ENOENT") {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      err.code === "ENOENT"
+    ) {
       console.error(
         `Missing ${filePath} — copy proxy-endpoints.example.txt to proxy-endpoints.local.txt and paste your Decodo URLs.`,
       );

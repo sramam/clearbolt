@@ -18,9 +18,9 @@ if (!process.env.DATABASE_URL?.trim()) {
 
 const dbPkg = join(root, "packages", "db");
 const extra = process.argv.slice(2);
-const r = spawnSync(
-  "pnpm",
-  ["exec", "prisma", "migrate", "dev", ...extra],
-  { cwd: dbPkg, stdio: "inherit", env: process.env },
-);
+const r = spawnSync("pnpm", ["exec", "prisma", "migrate", "dev", ...extra], {
+  cwd: dbPkg,
+  stdio: "inherit",
+  env: process.env,
+});
 process.exit(r.status ?? 1);

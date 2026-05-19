@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/** Quick check: HTTP+Decodo vs Playwright for one catalog URL. */
-import { config } from "dotenv";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+/** Quick check: HTTP+Decodo vs Playwright for one catalog URL. */
+import { config } from "dotenv";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 for (const name of [".env.cloud.local", ".env.dev", ".env"]) {
@@ -10,10 +10,11 @@ for (const name of [".env.cloud.local", ".env.dev", ".env"]) {
 }
 
 const url =
-  process.argv[2] ??
-  "https://m.bizbuysell.com/california-businesses-for-sale/";
+  process.argv[2] ?? "https://m.bizbuysell.com/california-businesses-for-sale/";
 
-const { HttpFetcher } = await import("../packages/scraper/dist/http-fetcher.js");
+const { HttpFetcher } = await import(
+  "../packages/scraper/dist/http-fetcher.js"
+);
 const { primeBizBuySellResidentialHosts } = await import(
   "../packages/scraper/dist/bizbuysell-run-policy.js"
 );

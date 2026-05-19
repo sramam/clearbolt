@@ -21,8 +21,8 @@
 import {
   copyFile,
   mkdir,
-  readdir,
   readFile,
+  readdir,
   stat,
   writeFile,
 } from "node:fs/promises";
@@ -74,7 +74,13 @@ function safeListingDirName(listingId) {
 }
 
 function listingRunDir(base, listingId, runId = RUN_ID) {
-  return join(base, "listings", safeListingDirName(listingId), "runs", String(runId));
+  return join(
+    base,
+    "listings",
+    safeListingDirName(listingId),
+    "runs",
+    String(runId),
+  );
 }
 
 function dataRel(absPath) {
@@ -84,7 +90,12 @@ function dataRel(absPath) {
 async function findCatalogRefs(source) {
   const candidates = [
     join(source, "catalog-refs", "california-businesses-for-sale.json"),
-    join(source, "catalog-refs", ADAPTER, "california-businesses-for-sale.json"),
+    join(
+      source,
+      "catalog-refs",
+      ADAPTER,
+      "california-businesses-for-sale.json",
+    ),
   ];
   for (const p of candidates) {
     try {
@@ -322,7 +333,7 @@ async function main() {
 
   if (!skipMaterialize) {
     for (const state of states) {
-      if (!state.evidenceRef?.key && !(state.processedArtifactKeys?.length)) {
+      if (!state.evidenceRef?.key && !state.processedArtifactKeys?.length) {
         continue;
       }
       materializeAudit.listingsWithEvidence++;
@@ -430,7 +441,10 @@ async function main() {
     );
 
     let localArtifacts = [];
-    if (!skipMaterialize && (state.evidenceRef || state.processedArtifactKeys?.length)) {
+    if (
+      !skipMaterialize &&
+      (state.evidenceRef || state.processedArtifactKeys?.length)
+    ) {
       const { stats, localArtifacts: locals } = await materializeListingRun(
         sourceRoot,
         runDirListing,
