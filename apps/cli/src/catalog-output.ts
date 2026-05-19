@@ -48,12 +48,12 @@ export async function writeCatalogIngestOutput(options: {
     await writeCatalogRefsFile(defaultRefsPath, {
       catalogUrl,
       adapter,
-      refs: result.discoveredListingRefs!,
+      refs: result.discoveredListingRefs ?? [],
       complete: true,
       pagesFetched: result.pagesFetched,
     });
     console.log(
-      `cached ${result.discoveredListingRefs!.length} ref(s) at ${defaultRefsPath}`,
+      `cached ${result.discoveredListingRefs?.length} ref(s) at ${defaultRefsPath}`,
     );
   }
   const payload: Record<string, unknown> = {
@@ -77,17 +77,10 @@ export async function writeCatalogIngestOutput(options: {
     result.listingsIngested === 0 &&
     result.listingsFailed === 0;
   const looksLikeCatalogResume =
-    result.listingsDiscovered > 1000 &&
-    result.listingsSkippedKnown > 0;
+    result.listingsDiscovered > 1000 && result.listingsSkippedKnown > 0;
   if (untouchedFailures && looksLikeCatalogResume && result.overall) {
     console.log(
-      `\nNote: This was catalog-resume mode, not --retry-failures-only. ` +
-        `${result.overall.failed} listing(s) still failed on disk and were not fetched ` +
-        `(resume skips satisfied listings and omits hard-block failures from the batch). ` +
-        `To retry failures only, run each line separately:\n` +
-        `  pnpm exec tsc -b packages/scraper apps/cli\n` +
-        `  export CLEARBOLT_PROXY_SESSION_ID="retry-$(date +%s)"\n` +
-        `  pnpm clearbolt catalog --retry-failures-only`,
+      `\nNote: This was catalog-resume mode, not --retry-failures-only. ${result.overall.failed} listing(s) still failed on disk and were not fetched (resume skips satisfied listings and omits hard-block failures from the batch). To retry failures only, run each line separately:\n  pnpm exec tsc -b packages/scraper apps/cli\n  export CLEARBOLT_PROXY_SESSION_ID="retry-$(date +%s)"\n  pnpm clearbolt catalog --retry-failures-only`,
     );
   }
 }

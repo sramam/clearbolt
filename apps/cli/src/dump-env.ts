@@ -7,8 +7,8 @@ import {
   shouldPreferHttpIngestForBizBuySell,
   shouldPreferMobileBizBuySellCatalog,
   shouldPreferMobileBizBuySellListing,
-  shouldUseBrowserFirstForBizBuySell,
   shouldUseBrowserFallbackForBizBuySellListingIngest,
+  shouldUseBrowserFirstForBizBuySell,
   shouldUseHttpProxyFirstForBizBuySell,
 } from "@clearbolt/scraper";
 import { dataRoot, loadRepoEnv } from "./bind-storage.js";
@@ -61,14 +61,16 @@ function resolvedScraperFlags(): Record<string, boolean | number | string> {
     residentialProxyConfigured: residentialProxyConfigured(),
     residentialProxyEndpointCount: residentialProxyEndpointCount(),
     shouldUseBrowserFirstForBizBuySell: shouldUseBrowserFirstForBizBuySell(),
-    shouldUseHttpProxyFirstForBizBuySell: shouldUseHttpProxyFirstForBizBuySell(),
+    shouldUseHttpProxyFirstForBizBuySell:
+      shouldUseHttpProxyFirstForBizBuySell(),
     shouldPreferMobileBizBuySellCatalog: shouldPreferMobileBizBuySellCatalog(),
     shouldPreferMobileBizBuySellListing: shouldPreferMobileBizBuySellListing(),
     shouldPreferHttpIngestForBizBuySell: shouldPreferHttpIngestForBizBuySell(),
     shouldUseBrowserFallbackForBizBuySellListingIngest:
       shouldUseBrowserFallbackForBizBuySellListingIngest(),
     akamaiHardBlockProxyRetryAttempts: akamaiHardBlockProxyRetryAttempts(),
-    listingFetchSkipKnown: process.env.CLEARBOLT_LISTING_FETCH_SKIP_KNOWN ?? "(unset)",
+    listingFetchSkipKnown:
+      process.env.CLEARBOLT_LISTING_FETCH_SKIP_KNOWN ?? "(unset)",
     scrapeConcurrency: process.env.CLEARBOLT_SCRAPE_CONCURRENCY ?? "(unset)",
     browserHeadless: process.env.CLEARBOLT_BROWSER_HEADLESS ?? "(unset)",
     proxySessionId: process.env.CLEARBOLT_PROXY_SESSION_ID ?? "(unset)",
@@ -84,7 +86,9 @@ export type DumpRunEnvOptions = {
 };
 
 /** Write redacted env + resolved flags for debugging scraper runs. */
-export async function dumpRunEnv(options: DumpRunEnvOptions = {}): Promise<string> {
+export async function dumpRunEnv(
+  options: DumpRunEnvOptions = {},
+): Promise<string> {
   loadRepoEnv();
   const at = new Date().toISOString();
   const slug = at.replace(/[:.]/g, "-");
@@ -117,7 +121,8 @@ export function parseDumpEnvPath(args: string[]): {
   const rest: string[] = [];
   let dumpPath: string | undefined;
   for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
+    const a = args[i];
+    if (a === undefined) continue;
     if (a === "--dump-env") {
       const next = args[i + 1];
       if (next && !next.startsWith("--")) {

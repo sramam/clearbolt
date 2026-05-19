@@ -1,8 +1,12 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  type IncomingMessage,
+  type ServerResponse,
+  createServer,
+} from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runBizBuySellCatalogScrapeWithBrowser } from "@clearbolt/scraper/run-bizbuysell-catalog-scrape";
 import { isBizBuySellCatalogUrl } from "@clearbolt/scraper";
+import { runBizBuySellCatalogScrapeWithBrowser } from "@clearbolt/scraper/run-bizbuysell-catalog-scrape";
 import { runBizBuySellScrape } from "@clearbolt/scraper/run-bizbuysell-scrape";
 import dotenv from "dotenv";
 import { bindStorage } from "./bind-storage.js";
@@ -222,7 +226,10 @@ async function handleBizBuySellCatalog(
 
 const server = createServer(async (req, res) => {
   try {
-    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const url = new URL(
+      req.url ?? "/",
+      `http://${req.headers.host ?? "localhost"}`,
+    );
 
     if (req.method === "GET" && url.pathname === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -230,10 +237,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (
-      req.method === "POST" &&
-      url.pathname === "/v1/bizbuysell/scrape"
-    ) {
+    if (req.method === "POST" && url.pathname === "/v1/bizbuysell/scrape") {
       await handleBizBuySellScrape(req, res);
       return;
     }

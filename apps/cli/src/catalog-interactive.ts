@@ -1,13 +1,13 @@
 import { access } from "node:fs/promises";
 import {
   CATALOG_SOURCES,
+  type CatalogSourceId,
   catalogRefsReadPathCandidates,
   defaultCatalogRefsPath,
   isCatalogDiscoveryComplete,
   readCatalogRefsFile,
   resolveCatalogRefsPath,
   resolveCatalogUrl,
-  type CatalogSourceId,
 } from "@clearbolt/scraper";
 import { dataRoot } from "./bind-storage.js";
 import { promptChoice, promptLine, promptYesNo } from "./prompt.js";
@@ -28,7 +28,11 @@ const CATALOG_EXPLICIT_MODE_FLAGS = [
 export function catalogArgsHaveExplicitMode(args: string[]): boolean {
   if (CATALOG_EXPLICIT_MODE_FLAGS.some((f) => args.includes(f))) return true;
   const refsIdx = args.indexOf("--refs-file");
-  if (refsIdx !== -1 && refsIdx + 1 < args.length && args[refsIdx + 1]?.trim()) {
+  if (
+    refsIdx !== -1 &&
+    refsIdx + 1 < args.length &&
+    args[refsIdx + 1]?.trim()
+  ) {
     return true;
   }
   return false;
@@ -72,7 +76,10 @@ export async function buildCatalogArgsInteractive(): Promise<CatalogInteractiveR
     sourceChoices,
     "bizbuysell",
   );
-  const source = CATALOG_SOURCES.find((s) => s.id === sourceId)!;
+  const source = CATALOG_SOURCES.find((s) => s.id === sourceId);
+  if (!source) {
+    throw new Error(`Unknown catalog source: ${sourceId}`);
+  }
 
   const useCustomUrl = await promptYesNo(
     "Use a custom catalog URL instead of the default?",
@@ -115,7 +122,11 @@ export async function buildCatalogArgsInteractive(): Promise<CatalogInteractiveR
     hint: "re-walk catalog and re-fetch listings",
   });
 
-  const mode = await promptChoice("Run mode", modeChoices, cache ? "resume" : "discover");
+  const mode = await promptChoice(
+    "Run mode",
+    modeChoices,
+    cache ? "resume" : "discover",
+  );
 
   const args: string[] = ["--source", sourceId];
   if (useCustomUrl || catalogUrl !== source.defaultCatalogUrl) {
@@ -148,7 +159,10 @@ export async function buildCatalogArgsInteractive(): Promise<CatalogInteractiveR
   }
 
   if (source.browserRequired || sourceId === "bizbuysell") {
-    const headed = await promptYesNo("Headed Chromium (visible window)?", false);
+    const headed = await promptYesNo(
+      "Headed Chromium (visible window)?",
+      false,
+    );
     if (headed) args.push("--headed");
   }
 
@@ -172,9 +186,10 @@ export function parseCatalogSourceFlag(args: string[]): {
   const rest: string[] = [];
   let sourceId: string | undefined;
   for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
+    const a = args[i];
+    if (a === undefined) continue;
     if (a === "--source" && i + 1 < args.length) {
-      sourceId = args[i + 1]!.trim();
+      sourceId = args[i + 1]?.trim();
       i++;
       continue;
     }

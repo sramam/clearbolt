@@ -1,5 +1,5 @@
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 
 export async function promptLine(
   question: string,
@@ -26,7 +26,8 @@ export async function promptChoice<T extends string>(
 ): Promise<T> {
   console.log(`\n${title}`);
   for (let i = 0; i < choices.length; i++) {
-    const c = choices[i]!;
+    const c = choices[i];
+    if (c === undefined) continue;
     const mark = c.value === defaultValue ? "*" : " ";
     const hint = c.hint ? ` — ${c.hint}` : "";
     console.log(`  ${mark} ${i + 1}. ${c.label}${hint}`);
@@ -44,7 +45,7 @@ export async function promptChoice<T extends string>(
       console.log(`Enter 1–${choices.length}`);
       continue;
     }
-    return choices[n - 1]!.value;
+    return choices[n - 1]?.value;
   }
 }
 

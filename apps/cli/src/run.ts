@@ -1,54 +1,55 @@
 import { mkdir } from "node:fs/promises";
 import type { Readable } from "node:stream";
-import { SourceRecordSchema } from "@clearbolt/core";
-import {
-  BIZBUYSELL_CALIFORNIA_CATALOG_URL,
-  isBizBuySellCatalogUrl,
-  isBizQuestSearchUrl,
-  isBusinessBrokerCatalogUrl,
-  parseListingPage,
-  parseSearchUrl,
-  runBizQuestScrape,
-  assertCatalogRefsAdapter,
-  assertCatalogIngestSupported,
-  catalogAdapterFromUrl,
-  defaultCatalogRefsPath,
-  formatCatalogSourcesTable,
-  isCatalogDiscoveryComplete,
-  loadCatalogRefsForAdapter,
-  readCatalogRefsFile,
-  defaultIngestFailuresPath,
-  scrapeAdapterFromUrl,
-  listIngestFailureRefs,
-  listFailedListingRefsForCatalog,
-  beginListingScrapeRun,
-  completeListingScrapeRun,
-  countListingIndexesOnScrape,
-  countListingIngestStatesOnDisk,
-  ScrapeRunListingStateStore,
-  compositeListingIngestStateStore,
-  readScrapeMeta,
-  scrapeMetaPath,
-  listingScrapeContextFromCatalogUrl,
-  countAkamaiHardBlockFailures,
-  runBizBuySellScrape,
-  runCatalogScrape,
-  syncIngestFailuresFromDisk,
-  type ResumeCatalogDiscovery,
-  BIZBUYSELL_CALIFORNIA_BROKER_DIRECTORY_URL,
-  isBizBuySellBrokerDirectoryUrl,
-  isBizBuySellBrokerProfileUrl,
-  defaultBrokerRefsPath,
-  writeBrokerRefsFile,
-  runBizBuySellBrokerDirectoryScrapeWithBrowser,
-  runBizBuySellBrokerProfileScrapeWithBrowser,
-} from "@clearbolt/scraper";
 import {
   isBrokerDirectoryAdapterId,
   runBrokerDirectoryDiscovery,
 } from "@clearbolt/broker-directory";
 import { runBrokerSiteCrawl } from "@clearbolt/broker-site";
+import { SourceRecordSchema } from "@clearbolt/core";
+import {
+  BIZBUYSELL_CALIFORNIA_BROKER_DIRECTORY_URL,
+  BIZBUYSELL_CALIFORNIA_CATALOG_URL,
+  type ResumeCatalogDiscovery,
+  ScrapeRunListingStateStore,
+  assertCatalogIngestSupported,
+  assertCatalogRefsAdapter,
+  beginListingScrapeRun,
+  catalogAdapterFromUrl,
+  completeListingScrapeRun,
+  compositeListingIngestStateStore,
+  countAkamaiHardBlockFailures,
+  countListingIndexesOnScrape,
+  countListingIngestStatesOnDisk,
+  defaultBrokerRefsPath,
+  defaultCatalogRefsPath,
+  defaultIngestFailuresPath,
+  formatCatalogSourcesTable,
+  isBizBuySellBrokerDirectoryUrl,
+  isBizBuySellBrokerProfileUrl,
+  isBizBuySellCatalogUrl,
+  isBizQuestSearchUrl,
+  isBusinessBrokerCatalogUrl,
+  isCatalogDiscoveryComplete,
+  listFailedListingRefsForCatalog,
+  type listIngestFailureRefs,
+  listingScrapeContextFromCatalogUrl,
+  loadCatalogRefsForAdapter,
+  parseListingPage,
+  parseSearchUrl,
+  readCatalogRefsFile,
+  readScrapeMeta,
+  runBizBuySellBrokerDirectoryScrapeWithBrowser,
+  runBizBuySellBrokerProfileScrapeWithBrowser,
+  runBizBuySellScrape,
+  runBizQuestScrape,
+  runCatalogScrape,
+  scrapeAdapterFromUrl,
+  scrapeMetaPath,
+  syncIngestFailuresFromDisk,
+  writeBrokerRefsFile,
+} from "@clearbolt/scraper";
 import { positionalArgs } from "./argv.js";
+import { bindStorage, dataRoot } from "./bind-storage.js";
 import {
   buildCatalogArgsInteractive,
   catalogArgsHaveExplicitMode,
@@ -64,7 +65,6 @@ import {
   parseDumpEnvPath,
   shouldDumpEnvFromArgv,
 } from "./dump-env.js";
-import { bindStorage, dataRoot } from "./bind-storage.js";
 import { stdinIsInteractive } from "./prompt.js";
 
 function logStorageBackends(
@@ -301,7 +301,9 @@ async function cmdBrokerSite(args: string[]): Promise<void> {
     }
 
     if (discoverOnly || ingestLimit === 0) {
-      console.log(`discovered ${result.listingLinksDiscovered} listing URL(s):`);
+      console.log(
+        `discovered ${result.listingLinksDiscovered} listing URL(s):`,
+      );
       for (const u of result.listingUrls.slice(0, 50)) {
         console.log(`  ${u}`);
       }
@@ -379,7 +381,9 @@ async function cmdBroker(args: string[]): Promise<void> {
         );
         const withWeb = result.refs.filter((r) => r.websiteDomain).length;
         if (withWeb > 0) {
-          console.log(`  ${withWeb} with websiteDomain (ready for broker-site crawl after allow-list)`);
+          console.log(
+            `  ${withWeb} with websiteDomain (ready for broker-site crawl after allow-list)`,
+          );
         }
         return;
       }
@@ -388,7 +392,9 @@ async function cmdBroker(args: string[]): Promise<void> {
       const directoryUrl =
         urlArg?.trim() || BIZBUYSELL_CALIFORNIA_BROKER_DIRECTORY_URL;
       if (!isBizBuySellBrokerDirectoryUrl(directoryUrl)) {
-        throw new Error(`Not a BizBuySell broker directory URL: ${directoryUrl}`);
+        throw new Error(
+          `Not a BizBuySell broker directory URL: ${directoryUrl}`,
+        );
       }
       const defaultRefs = defaultBrokerRefsPath(directoryUrl, root);
       const checkpointPath = discoverOut ?? defaultRefs;
@@ -424,7 +430,9 @@ async function cmdBroker(args: string[]): Promise<void> {
     if (sub === "scrape") {
       const profileUrl = positionalArgs(args.filter((a) => a !== sub))[0];
       if (!profileUrl) {
-        throw new Error("usage: clearbolt broker scrape <profile-url> [--ingest N]");
+        throw new Error(
+          "usage: clearbolt broker scrape <profile-url> [--ingest N]",
+        );
       }
       if (!isBizBuySellBrokerProfileUrl(profileUrl)) {
         throw new Error(`Not a BizBuySell broker profile URL: ${profileUrl}`);
@@ -466,7 +474,9 @@ async function cmdScrapeBizQuest(args: string[]): Promise<void> {
   const urls = args.filter((a) => !a.startsWith("--"));
   const searchUrlArg = urls[0];
   if (!searchUrlArg)
-    throw new Error("usage: clearbolt scrape <bizquest-search-url> [--fixtures]");
+    throw new Error(
+      "usage: clearbolt scrape <bizquest-search-url> [--fixtures]",
+    );
 
   const root = dataRoot();
   await mkdir(root, { recursive: true });
@@ -607,14 +617,15 @@ function parseFlagString(args: string[], flag: string): string | undefined {
 function parseHeadedMode(args: string[]): boolean {
   if (args.includes("--headed")) return true;
   for (let i = 0; i < args.length; i++) {
-    const a = args[i]!;
+    const a = args[i];
+    if (a === undefined) continue;
     if (a === "--headless=0" || a === "--headless=false") return true;
     if (a.startsWith("--headless=")) {
       const v = a.slice("--headless=".length).trim().toLowerCase();
       if (v === "0" || v === "false") return true;
     }
     if (a === "--headless" && i + 1 < args.length) {
-      const v = args[i + 1]!.trim().toLowerCase();
+      const v = args[i + 1]?.trim().toLowerCase();
       if (v === "0" || v === "false") return true;
     }
   }
@@ -627,8 +638,7 @@ async function cmdCatalog(args: string[]): Promise<void> {
     return;
   }
 
-  const interactiveFlag =
-    args.includes("--interactive") || args.includes("-i");
+  const interactiveFlag = args.includes("--interactive") || args.includes("-i");
   let runArgs = args.filter(
     (a) => a !== "--interactive" && a !== "-i" && a !== "--list-sources",
   );
@@ -636,7 +646,8 @@ async function cmdCatalog(args: string[]): Promise<void> {
   const { sourceId: sourceFlagEarly, rest: argsBeforeInteractive } =
     parseCatalogSourceFlag(runArgs);
   const hasUrl =
-    positionalArgs(argsBeforeInteractive).length > 0 || Boolean(sourceFlagEarly);
+    positionalArgs(argsBeforeInteractive).length > 0 ||
+    Boolean(sourceFlagEarly);
   if (
     interactiveFlag ||
     (!hasUrl && !catalogArgsHaveExplicitMode(runArgs) && stdinIsInteractive())
@@ -646,7 +657,8 @@ async function cmdCatalog(args: string[]): Promise<void> {
   }
 
   const dumpEnvRequested = shouldDumpEnvFromArgv(runArgs);
-  const { rest: runArgsNoDump, dumpPath: dumpEnvPath } = parseDumpEnvPath(runArgs);
+  const { rest: runArgsNoDump, dumpPath: dumpEnvPath } =
+    parseDumpEnvPath(runArgs);
   runArgs = runArgsNoDump;
 
   const { sourceId, rest: catalogArgs } = parseCatalogSourceFlag(runArgs);
@@ -657,13 +669,14 @@ async function cmdCatalog(args: string[]): Promise<void> {
   if (retryFailuresOnly && refresh) {
     throw new Error("Use either --retry-failures-only or --refresh, not both");
   }
-  const forceDiscovery =
-    catalogArgs.includes("--force-discovery") || refresh;
+  const forceDiscovery = catalogArgs.includes("--force-discovery") || refresh;
   const headed = parseHeadedMode(catalogArgs);
   const discoverOut = parseFlagString(catalogArgs, "--discover-out");
-  let refsFile = parseFlagString(catalogArgs, "--refs-file");
+  const refsFile = parseFlagString(catalogArgs, "--refs-file");
   if (refsFile && discoverOnly) {
-    throw new Error("Use either --refs-file (ingest only) or --discover-only, not both");
+    throw new Error(
+      "Use either --refs-file (ingest only) or --discover-only, not both",
+    );
   }
   if (refresh && refsFile) {
     throw new Error("Use either --refresh or --refs-file, not both");
@@ -675,20 +688,19 @@ async function cmdCatalog(args: string[]): Promise<void> {
     );
   }
 
-  let catalogUrl = catalogUrlFromArgs(
-    sourceId,
-    positionalArgs(catalogArgs)[0],
-  );
+  let catalogUrl = catalogUrlFromArgs(sourceId, positionalArgs(catalogArgs)[0]);
 
   const root = dataRoot();
   await mkdir(root, { recursive: true });
 
-  let listingRefsFromFile: Awaited<ReturnType<typeof readCatalogRefsFile>> | undefined;
+  let listingRefsFromFile:
+    | Awaited<ReturnType<typeof readCatalogRefsFile>>
+    | undefined;
   let resumeDiscovery: ResumeCatalogDiscovery | undefined;
   let ingestRefsOnly: typeof listingRefsFromFile | undefined;
-  let retryFailureRefs: Awaited<
-    ReturnType<typeof listIngestFailureRefs>
-  > | undefined;
+  let retryFailureRefs:
+    | Awaited<ReturnType<typeof listIngestFailureRefs>>
+    | undefined;
 
   if (refsFile) {
     listingRefsFromFile = await readCatalogRefsFile(refsFile);
@@ -791,7 +803,9 @@ async function cmdCatalog(args: string[]): Promise<void> {
       catalogAdapter,
     );
     if (failureRefs.length === 0) {
-      console.log("retry-failures-only: no listings with status=failed on disk");
+      console.log(
+        "retry-failures-only: no listings with status=failed on disk",
+      );
       return;
     }
     if (!catalogUrl) {
@@ -806,10 +820,11 @@ async function cmdCatalog(args: string[]): Promise<void> {
       `mode: retry-failures-only (${failureRefs.length} failed listing(s) only; catalog walk skipped)`,
     );
     console.log(
-      `retry-failures-only: re-fetching ${failureRefs.length} failed listing(s)` +
-        (hardBlocks > 0
+      `retry-failures-only: re-fetching ${failureRefs.length} failed listing(s)${
+        hardBlocks > 0
           ? ` (${hardBlocks} were Akamai hard blocks — use a new CLEARBOLT_PROXY_SESSION_ID and/or --headed)`
-          : ""),
+          : ""
+      }`,
     );
   }
 

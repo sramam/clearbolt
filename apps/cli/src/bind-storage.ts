@@ -1,5 +1,11 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  DiskListingIngestStateStore,
+  JsonBackendListingIngestStateStore,
+  type ListingIngestStateStore,
+  compositeListingIngestStateStore,
+} from "@clearbolt/scraper";
 import type {
   EvidenceStore,
   MetadataStore,
@@ -14,12 +20,6 @@ import {
   NeonMetadataStore,
   neonMetadataConfigFromEnv,
 } from "@clearbolt/storage-neon";
-import {
-  compositeListingIngestStateStore,
-  DiskListingIngestStateStore,
-  JsonBackendListingIngestStateStore,
-  type ListingIngestStateStore,
-} from "@clearbolt/scraper";
 import {
   R2EvidenceStore,
   R2ListingIngestStateStore,
