@@ -58,6 +58,11 @@ interface Scheduler {
 
 ## Validation criteria
 
+### V0 in-memory
+- **Given** `MemoryQueue`, **when** a consumer is registered before enqueue, **then** the handler receives the payload in order. Coverage: unit. Test: `packages/queue/tests/memory-queue.test.ts`.
+- **Given** `MemoryQueue`, **when** enqueue runs before consume, **then** the backlog drains when the consumer registers. Coverage: unit. Test: `packages/queue/tests/memory-queue.test.ts`.
+- **Given** `MemoryQueue`, **when** the same `idempotencyKey` is used twice for a job name, **then** the handler runs once. Coverage: unit. Test: `packages/queue/tests/memory-queue.test.ts`.
+
 ### Conformance
 - **Given** any `Queue` backend, **when** the conformance suite at `packages/queue/src/conformance/queue.suite.ts` runs, **then** all assertions pass: enqueue + consume round-trips, at-least-once delivery, structured failure on handler throw, retry with backoff, dead-letter after max-attempts. Coverage: integration. Test: `packages/queue/tests/conformance.test.ts` (TBD V1).
 - **Given** any `Scheduler` backend, **when** a cron is scheduled and the configured time elapses, **then** exactly one job is enqueued per fire window. Coverage: integration. Test: `packages/queue/src/conformance/scheduler.suite.ts` (TBD V1).
