@@ -4,8 +4,8 @@
  */
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
 import { databaseUrlFromEnv, getPrisma } from "@clearbolt/db";
+import dotenv from "dotenv";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 for (const name of [".env.cloud.local", ".env.dev", ".env"]) {

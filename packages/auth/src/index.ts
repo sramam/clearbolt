@@ -4,4 +4,8 @@ export {
   assertInternalUserId,
   isLikelyEmailUserId,
 } from "./user-id.js";
-export { createClearboltAuth, getClearboltAuth, isAuthConfigured } from "./server/index.js";
+export {
+  createClearboltAuth,
+  getClearboltAuth,
+  isAuthConfigured,
+} from "./server/index.js";

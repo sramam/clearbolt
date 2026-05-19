@@ -12,7 +12,9 @@ function optionalSocial(
 }
 
 /** Prisma client from `@clearbolt/storage-neon` (`getPrisma`). */
-export function createClearboltAuth(prisma: Parameters<typeof prismaAdapter>[0]) {
+export function createClearboltAuth(
+  prisma: Parameters<typeof prismaAdapter>[0],
+) {
   const secret = process.env.BETTER_AUTH_SECRET?.trim();
   if (!secret || secret.length < 32) {
     throw new Error(

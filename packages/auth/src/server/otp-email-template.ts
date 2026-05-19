@@ -16,7 +16,8 @@ const HEADLINES: Record<VerificationOtpType, string> = {
 };
 
 const LEAD: Record<VerificationOtpType, string> = {
-  "sign-in": "Use this one-time code to finish signing in. It expires in 5 minutes.",
+  "sign-in":
+    "Use this one-time code to finish signing in. It expires in 5 minutes.",
   "email-verification":
     "Enter this code to verify your email address. It expires in 5 minutes.",
   "forget-password":

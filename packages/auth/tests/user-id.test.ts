@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  assertInternalUserId,
   AuthError,
+  assertInternalUserId,
   isLikelyEmailUserId,
 } from "../src/index.js";
 
@@ -11,7 +11,9 @@ describe("assertInternalUserId", () => {
   });
 
   it("rejects email-shaped values", () => {
-    expect(() => assertInternalUserId("searcher@example.com")).toThrow(AuthError);
+    expect(() => assertInternalUserId("searcher@example.com")).toThrow(
+      AuthError,
+    );
     expect(() => assertInternalUserId("searcher@example.com")).toThrow(
       /not an email/i,
     );

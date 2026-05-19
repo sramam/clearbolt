@@ -1,6 +1,6 @@
 import {
-  buildOtpEmailContent,
   type VerificationOtpType,
+  buildOtpEmailContent,
 } from "./otp-email-template.js";
 
 export type { VerificationOtpType };
@@ -8,8 +8,7 @@ export type { VerificationOtpType };
 /** True when Resend can send OTP mail (production path). */
 export function isResendOtpConfigured(): boolean {
   return Boolean(
-    process.env.RESEND_API_KEY?.trim() &&
-      process.env.AUTH_EMAIL_FROM?.trim(),
+    process.env.RESEND_API_KEY?.trim() && process.env.AUTH_EMAIL_FROM?.trim(),
   );
 }
 
