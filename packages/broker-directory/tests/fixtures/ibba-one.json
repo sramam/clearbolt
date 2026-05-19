@@ -1,0 +1,20 @@
+[
+  {
+    "id": "43939435",
+    "first_name": "John",
+    "middle_name": null,
+    "last_name": "Willingham",
+    "company": "Sunbelt Business Brokers & Advisors",
+    "email": "john@example.com",
+    "website": "https://www.sunbeltnetwork.com/bakersfield-ca/",
+    "phone": "(661) 323-2358",
+    "city": "Bakersfield",
+    "state": "California",
+    "state_code": "CA",
+    "country": "United States",
+    "country_code": "US",
+    "cbi_cert": "1",
+    "mami_cert": "0",
+    "master_cert": "0"
+  }
+]
