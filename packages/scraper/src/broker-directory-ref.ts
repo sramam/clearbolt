@@ -74,18 +74,26 @@ export function discoverBizBuySellBrokerRefsFromHtml(
   html: string,
 ): BrokerDirectoryRef[] {
   const merged = new Map<string, BrokerDirectoryRef>();
-  const re =
-    /href=["']([^"']*\/business-broker\/[^"']+)["']/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
+  const re = /href=["']([^"']*\/business-broker\/[^"']+)["']/gi;
+  let m: RegExpExecArray | null = re.exec(html);
+  while (m !== null) {
     try {
-      const abs = new URL(m[1]!, "https://www.bizbuysell.com").toString();
-      if (!isBizBuySellBrokerProfileUrl(abs)) continue;
+      const href = m[1];
+      if (!href) {
+        m = re.exec(html);
+        continue;
+      }
+      const abs = new URL(href, "https://www.bizbuysell.com").toString();
+      if (!isBizBuySellBrokerProfileUrl(abs)) {
+        m = re.exec(html);
+        continue;
+      }
       const ref = brokerDirectoryRefFromBizBuySellProfileUrl(abs);
       if (ref) mergeBrokerDirectoryRef(merged, ref);
     } catch {
       /* skip */
     }
+    m = re.exec(html);
   }
   return [...merged.values()];
 }
